@@ -146,20 +146,17 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <button
-              onClick={() => router.push("/admin/panel")}
-              className="mt-5 w-full rounded-3xl border border-white/20 bg-[rgba(255,255,255,0.14)] px-4 py-4 text-left shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] active:scale-95"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-cyan-50/75">Admin Panel Lengkap</p>
-                  <p className="mt-2 text-sm font-black text-white">Buka pusat management, statistik, analisis, dan kontrol operasional admin.</p>
-                </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-[rgba(255,255,255,0.12)] text-white shrink-0">
-                  <ChevronRight size={18} />
-                </div>
-              </div>
-            </button>
+            <div className="mt-5">
+              <button
+                onClick={() => router.push("/admin/panel")}
+                className="w-full rounded-2xl bg-blue-700 px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-900/30 transition-all duration-300 hover:bg-blue-800 hover:scale-[1.01] active:scale-95"
+              >
+                <span className="inline-flex items-center justify-center gap-2">
+                  Admin Panel
+                  <ChevronRight size={16} />
+                </span>
+              </button>
+            </div>
 
             <div className="mt-5 grid grid-cols-3 gap-3">
               <div className="rounded-3xl border border-white/18 bg-white/10 p-4">
