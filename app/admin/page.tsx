@@ -109,30 +109,30 @@ export default function AdminDashboardPage() {
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="inline-flex items-center rounded-full border border-white/20 bg-white/14 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
+              <div className="inline-flex items-center rounded-full border border-white/20 bg-[rgba(255,255,255,0.14)] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
                 Panel Pengurus
               </div>
               <h1 className="mt-3 text-[2rem] font-black tracking-tight leading-none">Dashboard Admin</h1>
               <p className="mt-3 max-w-80 text-sm leading-relaxed text-blue-50/92">Pantau aktivitas warga, status surat, dan progres iuran dalam satu tampilan yang lebih ringkas dan mudah diikuti.</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={handleAiAnnouncement} className="h-11 w-11 rounded-2xl bg-white/14 text-white border border-white/20 shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+              <button onClick={handleAiAnnouncement} className="h-11 w-11 rounded-2xl bg-[rgba(255,255,255,0.14)] text-white border border-white/20 shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                 {isAiLoading ? <Loader2 size={18} className="animate-spin mx-auto" /> : <Sparkles size={18} className="mx-auto" />}
               </button>
-              <button onClick={() => setNotif("Broadcast notifikasi siap dikirim")} className="h-11 w-11 rounded-2xl bg-white/14 text-white border border-white/20 shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
+              <button onClick={() => setNotif("Broadcast notifikasi siap dikirim")} className="h-11 w-11 rounded-2xl bg-[rgba(255,255,255,0.14)] text-white border border-white/20 shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95">
                 <Bell size={18} className="mx-auto" />
               </button>
             </div>
           </div>
 
-          <div className="mt-6 rounded-4xl border border-white/20 bg-white/12 p-5 backdrop-blur-sm shadow-2xl shadow-blue-700/20">
+          <div className="mt-6 rounded-4xl border border-white/20 bg-[rgba(255,255,255,0.12)] p-5 backdrop-blur-sm shadow-2xl shadow-blue-700/20">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-cyan-50/80">Ringkasan Kas & Layanan</p>
                 <h2 className="mt-2 text-3xl font-black">Rp {totalCollected.toLocaleString("id-ID")}</h2>
                 <p className="mt-2 text-sm text-blue-50/88">Dana iuran yang sudah masuk dari {paidIuran.length} pembayaran tercatat.</p>
               </div>
-              <div className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50">
+              <div className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-[rgba(255,255,255,0.12)] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50">
                 <TrendingUp size={12} /> {collectionRate}% tercapai
               </div>
             </div>
@@ -141,21 +141,21 @@ export default function AdminDashboardPage() {
                 <span>Progres kolektif</span>
                 <span>{collectionRate}%</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-white/18 overflow-hidden">
+              <div className="w-full h-2 rounded-full bg-[rgba(255,255,255,0.18)] overflow-hidden">
                 <div className="h-full rounded-full bg-linear-to-r from-blue-400 via-cyan-300 to-blue-500 transition-all duration-1000" style={{ width: `${collectionRate}%` }} />
               </div>
             </div>
 
             <button
               onClick={() => router.push("/admin/panel")}
-              className="mt-5 w-full rounded-3xl border border-white/20 bg-white/14 px-4 py-4 text-left shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] active:scale-95"
+              className="mt-5 w-full rounded-3xl border border-white/20 bg-[rgba(255,255,255,0.14)] px-4 py-4 text-left shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] active:scale-95"
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-cyan-50/75">Admin Panel Lengkap</p>
                   <p className="mt-2 text-sm font-black text-white">Buka pusat management, statistik, analisis, dan kontrol operasional admin.</p>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/12 text-white shrink-0">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-[rgba(255,255,255,0.12)] text-white shrink-0">
                   <ChevronRight size={18} />
                 </div>
               </div>

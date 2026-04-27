@@ -32,7 +32,7 @@ export default function AdminProfilePage() {
         <div className="absolute top-10 left-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-sky-200/20 blur-3xl" />
         <div className="absolute inset-0 bg-linear-to-br from-white/8 via-transparent to-blue-900/10" />
         <div className="relative z-10 text-center">
-          <div className="inline-flex items-center rounded-full border border-white/20 bg-white/14 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
+          <div className="inline-flex items-center rounded-full border border-white/20 bg-[rgba(255,255,255,0.14)] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
             Profil Pengurus
           </div>
           <div className="relative mx-auto mt-5 h-24 w-24">
@@ -44,14 +44,14 @@ export default function AdminProfilePage() {
           <h3 className="mt-4 text-2xl font-black tracking-tight">Ketua RW 04</h3>
           <p className="mt-2 text-sm text-blue-50/88">ID Pengurus: 001 • Pengelola layanan warga</p>
 
-          <div className="mt-6 rounded-4xl border border-white/20 bg-white/12 p-5 backdrop-blur-sm shadow-2xl shadow-blue-700/20 text-left">
+          <div className="mt-6 rounded-4xl border border-white/20 bg-[rgba(255,255,255,0.12)] p-5 backdrop-blur-sm shadow-2xl shadow-blue-700/20 text-left">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-cyan-50/80">Status Operasional</p>
                 <h2 className="mt-2 text-2xl font-black">Panel Admin Aktif</h2>
                 <p className="mt-2 text-sm text-blue-50/88">Kelola data warga, surat, dan iuran dari akun pengurus utama dengan tampilan yang lebih rapi.</p>
               </div>
-              <div className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50">
+              <div className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-[rgba(255,255,255,0.12)] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50">
                 <Sparkles size={12} /> Siap kerja
               </div>
             </div>

@@ -75,20 +75,20 @@ export default function AdminIuranPage() {
         <div className="absolute top-10 left-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-sky-200/20 blur-3xl" />
         <div className="absolute inset-0 bg-linear-to-br from-white/8 via-transparent to-blue-900/10" />
         <div className="relative z-10">
-          <div className="inline-flex items-center rounded-full border border-white/20 bg-white/14 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
+          <div className="inline-flex items-center rounded-full border border-white/20 bg-[rgba(255,255,255,0.14)] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
             Data Iuran Warga
           </div>
           <h1 className="mt-3 text-3xl font-black tracking-tight">Monitoring Iuran</h1>
           <p className="text-sm text-blue-50/92 mt-3 leading-relaxed max-w-80">Pantau pembayaran warga, lihat tagihan prioritas, dan perbarui status pembayaran langsung dari satu halaman.</p>
 
-          <div className="mt-6 rounded-4xl border border-white/20 bg-white/12 p-5 backdrop-blur-sm shadow-2xl shadow-blue-700/20">
+          <div className="mt-6 rounded-4xl border border-white/20 bg-[rgba(255,255,255,0.12)] p-5 backdrop-blur-sm shadow-2xl shadow-blue-700/20">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-black uppercase tracking-widest text-cyan-50/80">Ringkasan Kas Warga</p>
                 <h2 className="mt-2 text-3xl font-black">Rp {totalCollected.toLocaleString("id-ID")}</h2>
                 <p className="mt-2 text-sm text-blue-50/88">Dana masuk dari {paidCount} pembayaran tercatat dan {uniqueCitizens} warga terpantau.</p>
               </div>
-              <div className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/12 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50">
+              <div className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-[rgba(255,255,255,0.12)] px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50">
                 <Sparkles size={12} /> {collectionRate}% lunas
               </div>
             </div>
@@ -98,7 +98,7 @@ export default function AdminIuranPage() {
                 <span>Progres penagihan</span>
                 <span>{collectionRate}%</span>
               </div>
-              <div className="h-2 rounded-full bg-white/18 overflow-hidden">
+              <div className="h-2 rounded-full bg-[rgba(255,255,255,0.18)] overflow-hidden">
                 <div className="h-full rounded-full bg-linear-to-r from-blue-400 via-cyan-300 to-blue-500 transition-all duration-1000" style={{ width: `${collectionRate}%` }} />
               </div>
             </div>
