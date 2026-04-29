@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import {
   ArrowLeft,
   Bell,
@@ -40,13 +41,51 @@ import { useAppStore } from "@/store/useAppStore";
 import Notification from "@/components/Notification";
 import BottomNav from "@/components/BottomNav";
 
-export default function AdminPanelPage() {
+  useAuthGuard();
   const router = useRouter();
+  const role = useAppStore((s) => s.role);
+  useEffect(() => {
+    if (role !== "admin") {
+      router.replace("/warga");
+    }
+  }, [role, router]);
   const citizens = useAppStore((s) => s.citizens);
   const letters = useAppStore((s) => s.letters);
   const iuran = useAppStore((s) => s.iuran);
+  const iuranTypes = useAppStore((s) => s.iuranTypes);
+  const iuranPayments = useAppStore((s) => s.iuranPayments);
   const notifications = useAppStore((s) => s.notifications);
+  const loadingCitizens = useAppStore((s) => s.loadingCitizens);
+  const loadingLetters = useAppStore((s) => s.loadingLetters);
+  const loadingIuran = useAppStore((s) => s.loadingIuran);
+  const loadingIuranPayments = useAppStore((s) => s.loadingIuranPayments);
+  const loadingNotifications = useAppStore((s) => s.loadingNotifications);
+  const fetchCitizens = useAppStore((s) => s.fetchCitizens);
+  const fetchLetters = useAppStore((s) => s.fetchLetters);
+  const fetchIuran = useAppStore((s) => s.fetchIuran);
+  const fetchIuranTypes = useAppStore((s) => s.fetchIuranTypes);
+  const fetchIuranPayments = useAppStore((s) => s.fetchIuranPayments);
+  const fetchNotifications = useAppStore((s) => s.fetchNotifications);
   const setNotif = useAppStore((s) => s.setNotif);
+  useEffect(() => {
+    fetchCitizens();
+    fetchLetters();
+    fetchIuran();
+    fetchIuranTypes();
+    fetchIuranPayments();
+    fetchNotifications();
+  }, [fetchCitizens, fetchLetters, fetchIuran, fetchIuranTypes, fetchIuranPayments, fetchNotifications]);
+
+  if (loadingCitizens || loadingLetters || loadingIuran || loadingIuranPayments || loadingNotifications) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data panel admin...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   const pendingLetters = useMemo(() => letters.filter((l) => l.status === "Proses"), [letters]);
   const completedLetters = useMemo(() => letters.filter((l) => l.status === "Selesai"), [letters]);
@@ -56,6 +95,28 @@ export default function AdminPanelPage() {
   const totalCollected = useMemo(() => paidIuran.reduce((sum, i) => sum + i.amount, 0), [paidIuran]);
   const collectionRate = iuran.length === 0 ? 0 : Math.round((paidIuran.length / iuran.length) * 100);
   const completionRate = letters.length === 0 ? 0 : Math.round((completedLetters.length / letters.length) * 100);
+
+  const newTotalCollected = useMemo(() => iuranPayments.filter((p) => p.status === "Lunas").reduce((sum, p) => sum + p.amount, 0), [iuranPayments]);
+  const newPaidCount = iuranPayments.filter((p) => p.status === "Lunas").length;
+  const newPendingCount = iuranPayments.filter((p) => p.status === "Belum").length;
+  const newCollectionRate = iuranPayments.length ? Math.round((newPaidCount / iuranPayments.length) * 100) : 0;
+
+  const perTypeStats = useMemo(() => {
+    return iuranTypes.map((t) => {
+      const payments = iuranPayments.filter((p) => p.iuranTypeId === t.id);
+      const paid = payments.filter((p) => p.status === "Lunas").length;
+      const total = payments.length;
+      const collected = payments.filter((p) => p.status === "Lunas").reduce((s, p) => s + p.amount, 0);
+      return { ...t, paid, total, collected, rate: total ? Math.round((paid / total) * 100) : 0 };
+    });
+  }, [iuranTypes, iuranPayments]);
+
+  const newIuranStatusCounts = useMemo(() => {
+    return [
+      { label: "Lunas", count: newPaidCount, color: "bg-blue-500", text: "text-blue-600", bg: "bg-blue-100" },
+      { label: "Belum", count: newPendingCount, color: "bg-rose-400", text: "text-rose-600", bg: "bg-rose-100" },
+    ];
+  }, [newPaidCount, newPendingCount]);
 
   const topLetterTypes = useMemo(() => {
     return Object.entries(
@@ -938,12 +999,12 @@ export default function AdminPanelPage() {
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                 {[
-                  { label: "Total Tagihan", value: iuran.length, icon: Receipt, color: "text-blue-600", bg: "bg-blue-50" },
-                  { label: "Lunas", value: paidIuran.length, icon: CheckCircle2, color: "text-blue-600", bg: "bg-blue-50" },
-                  { label: "Pending", value: pendingIuran.length, icon: AlertTriangle, color: "text-rose-500", bg: "bg-rose-50" },
-                  { label: "Collection", value: `${collectionRate}%`, icon: TrendingUp, color: "text-cyan-600", bg: "bg-cyan-50" },
-                  { label: "Dana Masuk", value: `Rp ${(totalCollected / 1000).toFixed(0)}rb`, icon: Banknote, color: "text-blue-600", bg: "bg-blue-50" },
-                  { label: "Rata/Warga", value: `Rp ${averageIuranPerCitizen.toLocaleString("id-ID")}`, icon: CreditCard, color: "text-cyan-600", bg: "bg-cyan-50" },
+                  { label: "Jenis Iuran", value: iuranTypes.length, icon: Receipt, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Total Tagihan", value: iuranPayments.length, icon: Wallet, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Lunas", value: newPaidCount, icon: CheckCircle2, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Belum", value: newPendingCount, icon: AlertTriangle, color: "text-rose-500", bg: "bg-rose-50" },
+                  { label: "Collection", value: `${newCollectionRate}%`, icon: TrendingUp, color: "text-cyan-600", bg: "bg-cyan-50" },
+                  { label: "Dana Masuk", value: `Rp ${(newTotalCollected / 1000).toFixed(0)}rb`, icon: Banknote, color: "text-blue-600", bg: "bg-blue-50" },
                 ].map((card, i) => (
                   <div key={card.label} className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-4 transition-all hover:scale-[1.02] hover:shadow-md" style={{ animationDelay: `${i * 60}ms` }}>
                     <div className="flex items-center gap-2 mb-2">
@@ -954,16 +1015,50 @@ export default function AdminPanelPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Per Jenis Iuran */}
+              <div>
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Ringkasan per Jenis Iuran</p>
+                {perTypeStats.length === 0 ? (
+                  <div className="rounded-4xl border border-dashed border-blue-100 bg-white/70 px-4 py-6 text-center">
+                    <p className="text-sm font-bold text-slate-600">Belum ada jenis iuran</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {perTypeStats.map((t, i) => (
+                      <div key={t.id} className="rounded-4xl border border-blue-100/80 bg-white/90 shadow-sm p-5 transition-all hover:shadow-md" style={{ animationDelay: `${i * 60}ms` }}>
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">{t.type === "monthly" ? "Bulanan" : t.type === "weekly" ? "Mingguan" : "Khusus"}</p>
+                            <h4 className="text-sm font-black text-slate-800 mt-0.5">{t.name}</h4>
+                          </div>
+                          <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600"><Receipt size={16} /></div>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl font-black text-slate-900">{t.rate}%</span>
+                          <span className="text-xs text-slate-500">terkumpul</span>
+                        </div>
+                        <p className="text-xs font-black text-blue-600 mt-1">Rp {t.collected.toLocaleString("id-ID")} dari {t.paid}/{t.total} warga</p>
+                        <div className="mt-3">
+                          <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
+                            <div className="h-full rounded-full bg-linear-to-r from-blue-400 to-cyan-400 transition-all duration-700" style={{ width: `${t.rate}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><PieChart size={15} /></div>
                     <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Iuran</p>
                   </div>
-                  {iuran.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
+                  {iuranPayments.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
                     <div className="space-y-4">
-                      {iuranStatusCounts.map((item) => {
-                        const pct = iuran.length ? Math.round((item.count / iuran.length) * 100) : 0;
+                      {newIuranStatusCounts.map((item) => {
+                        const pct = iuranPayments.length ? Math.round((item.count / iuranPayments.length) * 100) : 0;
                         return (
                           <div key={item.label}>
                             <div className="flex justify-between text-xs mb-1.5"><span className="font-black text-slate-800">{item.label}</span><span className={`font-black ${item.text}`}>{item.count} ({pct}%)</span></div>
@@ -974,7 +1069,7 @@ export default function AdminPanelPage() {
                     </div>
                   )}
                   <div className="mt-4 flex gap-2 flex-wrap">
-                    {iuranStatusCounts.map((item) => (
+                    {newIuranStatusCounts.map((item) => (
                       <span key={item.label} className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black ${item.bg} ${item.text}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${item.color}`} />{item.label}
                       </span>

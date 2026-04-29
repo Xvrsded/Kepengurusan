@@ -4,23 +4,39 @@ import Image from "next/image";
 import { Bell, ChevronRight, LogOut, ShieldCheck, Users2, Wallet, FileText, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
 
 export default function AdminProfilePage() {
+  useAuthGuard();
   const router = useRouter();
   const logout = useAppStore((s) => s.logout);
   const setNotif = useAppStore((s) => s.setNotif);
   const citizens = useAppStore((s) => s.citizens);
   const letters = useAppStore((s) => s.letters);
   const iuran = useAppStore((s) => s.iuran);
+  const loadingCitizens = useAppStore((s) => s.loadingCitizens);
+  const fetchCitizens = useAppStore((s) => s.fetchCitizens);
+  useEffect(() => { fetchCitizens(); }, [fetchCitizens]);
+
+  if (loadingCitizens) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data profil admin...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   const activeLetters = letters.filter((letter) => letter.status === "Proses").length;
   const paidIuran = iuran.filter((item) => item.status === "Lunas").length;
   const totalCollected = iuran.filter((item) => item.status === "Lunas").reduce((sum, item) => sum + item.amount, 0);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/login");
   };
 

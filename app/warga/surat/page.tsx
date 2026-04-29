@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Clock3, FilePlus2, FileText, Search, Sparkles } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
-import type { Letter } from "@/lib/mockData";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+
 import { callGemini } from "@/lib/gemini";
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
@@ -33,6 +34,22 @@ export default function WargaSuratPage() {
   const aiResult     = useAppStore((s) => s.aiResult);
   const userProfile  = useAppStore((s) => s.userProfile);
   const requestLetter = useAppStore((s) => s.requestLetter);
+  const fetchLetters = useAppStore((s) => s.fetchLetters);
+  const loadingLetters = useAppStore((s) => s.loadingLetters);
+
+  useEffect(() => {
+    fetchLetters();
+  }, [fetchLetters]);
+  if (loadingLetters) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data surat...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   const [selectedType, setSelectedType] = useState(SURAT_TYPES[0]);
   const [loading, setLoading]           = useState(false);
@@ -56,8 +73,8 @@ export default function WargaSuratPage() {
   const processCount = myLetters.filter((letter) => letter.status === "Proses").length;
   const doneCount = myLetters.filter((letter) => letter.status === "Selesai").length;
 
-  const handleRequestLetter = () => {
-    const result = requestLetter(selectedType);
+  const handleRequestLetter = async () => {
+    const result = (await requestLetter(selectedType)) as { success: boolean; message: string };
     setNotif({
       title: result.success ? "Pengajuan berhasil dikirim" : "Pengajuan belum berhasil",
       message: result.message,

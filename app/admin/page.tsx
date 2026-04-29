@@ -1,19 +1,39 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Users, FileText, Bell, Sparkles, Loader2, TrendingUp, CheckCircle2, Volume2, X, Wallet, Clock3, ChevronRight, CircleAlert, SendHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import { callGemini, playTTS } from "@/lib/gemini";
 import Notification from "@/components/Notification";
 import BottomNav from "@/components/BottomNav";
 
-export default function AdminDashboardPage() {
+  useAuthGuard();
   const router = useRouter();
+  const role = useAppStore((s) => s.role);
+  useEffect(() => {
+    if (role !== "admin") {
+      router.replace("/warga");
+    }
+  }, [role, router]);
   const citizens = useAppStore((s) => s.citizens);
   const letters = useAppStore((s) => s.letters);
   const iuran = useAppStore((s) => s.iuran);
+  const iuranTypes = useAppStore((s) => s.iuranTypes);
+  const iuranPayments = useAppStore((s) => s.iuranPayments);
   const notifications = useAppStore((s) => s.notifications);
+  const loadingCitizens = useAppStore((s) => s.loadingCitizens);
+  const loadingLetters = useAppStore((s) => s.loadingLetters);
+  const loadingIuran = useAppStore((s) => s.loadingIuran);
+  const loadingIuranPayments = useAppStore((s) => s.loadingIuranPayments);
+  const loadingNotifications = useAppStore((s) => s.loadingNotifications);
+  const fetchCitizens = useAppStore((s) => s.fetchCitizens);
+  const fetchLetters = useAppStore((s) => s.fetchLetters);
+  const fetchIuran = useAppStore((s) => s.fetchIuran);
+  const fetchIuranTypes = useAppStore((s) => s.fetchIuranTypes);
+  const fetchIuranPayments = useAppStore((s) => s.fetchIuranPayments);
+  const fetchNotifications = useAppStore((s) => s.fetchNotifications);
   const aiResult = useAppStore((s) => s.aiResult);
   const setAiResult = useAppStore((s) => s.setAiResult);
   const setNotif = useAppStore((s) => s.setNotif);
@@ -21,6 +41,20 @@ export default function AdminDashboardPage() {
   const isAiLoading = useAppStore((s) => s.isAiLoading);
   const setIsAiLoading = useAppStore((s) => s.setIsAiLoading);
   const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY ?? "";
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    fetchCitizens();
+    fetchLetters();
+    fetchIuran();
+    fetchIuranTypes();
+    fetchIuranPayments();
+    fetchNotifications();
+  }, [fetchCitizens, fetchLetters, fetchIuran, fetchIuranTypes, fetchIuranPayments, fetchNotifications]);
+
+  const isLoading = loadingCitizens || loadingLetters || loadingIuran || loadingIuranPayments || loadingNotifications;
 
   const handleAiAnnouncement = async () => {
     if (!apiKey) {
@@ -72,6 +106,22 @@ export default function AdminDashboardPage() {
     [paidIuran]
   );
   const collectionRate = iuran.length === 0 ? 0 : Math.round((paidIuran.length / iuran.length) * 100);
+
+  const newTotalCollected = useMemo(() => iuranPayments.filter((p) => p.status === "Lunas").reduce((sum, p) => sum + p.amount, 0), [iuranPayments]);
+  const newPaidCount = iuranPayments.filter((p) => p.status === "Lunas").length;
+  const newPendingCount = iuranPayments.filter((p) => p.status === "Belum").length;
+  const newCollectionRate = iuranPayments.length ? Math.round((newPaidCount / iuranPayments.length) * 100) : 0;
+
+  const perTypeSummary = useMemo(() => {
+    return iuranTypes.map((t) => {
+      const payments = iuranPayments.filter((p) => p.iuranTypeId === t.id);
+      const paid = payments.filter((p) => p.status === "Lunas").length;
+      const total = payments.length;
+      const collected = payments.filter((p) => p.status === "Lunas").reduce((s, p) => s + p.amount, 0);
+      return { ...t, paid, total, collected, rate: total ? Math.round((paid / total) * 100) : 0 };
+    });
+  }, [iuranTypes, iuranPayments]);
+
   const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
   const latestActivities = [
     pendingLetters[0]
@@ -96,6 +146,17 @@ export default function AdminDashboardPage() {
         }
       : null,
   ].filter(Boolean) as { title: string; subtitle: string; meta: string }[];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data admin...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden pb-24 animate-in fade-in duration-500">
@@ -176,12 +237,21 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {isLoading && mounted && (
+        <div className="px-6 pt-4">
+          <div className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-white border border-blue-100 shadow-sm">
+            <div className="h-5 w-5 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
+            <p className="text-xs font-black text-slate-500">Memuat data dari server...</p>
+          </div>
+        </div>
+      )}
+
       <div className="px-6 -mt-2 grid grid-cols-2 gap-4 pt-3 mb-8">
         {[
           { title: "Warga Terdata", value: citizens.length, subtitle: "Data penghuni aktif", icon: Users },
           { title: "Surat Selesai", value: completedLetters.length, subtitle: "Permintaan yang sudah ditutup", icon: CheckCircle2 },
           { title: "Notifikasi Baru", value: unreadNotifications, subtitle: "Butuh perhatian admin", icon: Bell },
-          { title: "Iuran Masuk", value: `Rp ${(totalCollected / 1000).toFixed(0)}rb`, subtitle: "Akumulasi pembayaran warga", icon: Wallet },
+          { title: "Iuran Masuk", value: `Rp ${(newTotalCollected / 1000).toFixed(0)}rb`, subtitle: "Akumulasi semua jenis iuran", icon: Wallet },
         ].map(({ title, value, subtitle, icon: Icon }, index) => (
           <div key={title} className="rounded-4xl p-4 border border-blue-100/80 bg-linear-to-br from-white via-cyan-50/40 to-blue-50/70 shadow-xl shadow-blue-100/60 animate-in fade-in duration-500" style={{ animationDelay: `${index * 60}ms` }}>
             <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100 flex items-center justify-center mb-4 shadow-sm shadow-blue-100/70"><Icon size={19} /></div>
@@ -271,8 +341,8 @@ export default function AdminDashboardPage() {
                       <SendHorizontal size={16} />
                     </button>
                     <button
-                      onClick={() => {
-                        updateLetterStatus(letter.id, "Selesai");
+                      onClick={async () => {
+                        await updateLetterStatus(letter.id, "Selesai");
                         sendWA("628987654321", `Surat ${letter.type} selesai!`);
                       }}
                       className="w-11 h-11 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-100 flex items-center justify-center transition-all hover:scale-105 active:scale-90"

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import type { AppNotification } from "@/store/useAppStore";
 import Notification from "@/components/Notification";
 import BottomNav from "@/components/BottomNav";
@@ -16,12 +17,29 @@ const TYPE_STYLES: Record<AppNotification["type"], string> = {
   warning: "bg-rose-50 border-rose-100 text-rose-700",
 };
 
-export default function WargaNotificationPage() {
+  useAuthGuard();
   const notifications = useAppStore((s) => s.notifications);
   const markAsRead = useAppStore((s) => s.markAsRead);
   const markAllAsRead = useAppStore((s) => s.markAllAsRead);
   const clearNotifications = useAppStore((s) => s.clearNotifications);
+  const fetchNotifications = useAppStore((s) => s.fetchNotifications);
+  const loadingNotifications = useAppStore((s) => s.loadingNotifications);
   const [filter, setFilter] = useState<FilterType>("Semua");
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  if (loadingNotifications) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat notifikasi...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   const filteredNotifications = useMemo(() => {
     if (filter === "Belum Dibaca") {

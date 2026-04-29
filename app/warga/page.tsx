@@ -1,18 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FileText, Wallet, QrCode, Vote, Sparkles, Volume2, Loader2, X, AlertTriangle, BellRing, CircleCheckBig, ChevronRight, MessageSquareWarning, Send, CalendarDays, Clock3 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import { callGemini, playTTS } from "@/lib/gemini";
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
 
 export default function WargaDashboardPage() {
+  useAuthGuard();
   const router = useRouter();
   const citizens = useAppStore((s) => s.citizens);
   const iuran = useAppStore((s) => s.iuran);
+  const loadingCitizens = useAppStore((s) => s.loadingCitizens);
+  const loadingIuran = useAppStore((s) => s.loadingIuran);
+  const loadingLetters = useAppStore((s) => s.loadingLetters);
+  const fetchCitizens = useAppStore((s) => s.fetchCitizens);
+  const fetchIuran = useAppStore((s) => s.fetchIuran);
+  const fetchLetters = useAppStore((s) => s.fetchLetters);
+    useEffect(() => {
+      fetchCitizens();
+      fetchIuran();
+      fetchLetters();
+    }, [fetchCitizens, fetchIuran, fetchLetters]);
   const aiResult = useAppStore((s) => s.aiResult);
   const setAiResult = useAppStore((s) => s.setAiResult);
   const setNotif = useAppStore((s) => s.setNotif);
@@ -116,6 +129,17 @@ export default function WargaDashboardPage() {
       setIsAiLoading(false);
     }
   };
+
+  if (loadingCitizens || loadingIuran || loadingLetters) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data warga...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden pb-24 animate-in fade-in duration-500">

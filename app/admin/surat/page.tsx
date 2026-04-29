@@ -1,19 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Clock3, FileSearch, FileText, Search, Sparkles, Users2, ChevronRight, CalendarDays, CircleAlert } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
-import type { Letter } from "@/lib/mockData";
+import { useAuthGuard } from "@/lib/useAuthGuard";
+
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
 
-export default function AdminSuratPage() {
+  useAuthGuard();
   const letters = useAppStore((s) => s.letters);
   const citizens = useAppStore((s) => s.citizens);
   const updateLetterStatus = useAppStore((s) => s.updateLetterStatus);
   const setNotif = useAppStore((s) => s.setNotif);
+  const fetchLetters = useAppStore((s) => s.fetchLetters);
+  const loadingLetters = useAppStore((s) => s.loadingLetters);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"Semua" | Letter["status"]>("Semua");
+
+  useEffect(() => {
+    fetchLetters();
+  }, [fetchLetters]);
+
+  if (loadingLetters) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data surat...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   const processCount = letters.filter((letter) => letter.status === "Proses").length;
   const doneCount = letters.filter((letter) => letter.status === "Selesai").length;
@@ -47,8 +65,8 @@ export default function AdminSuratPage() {
       .slice(0, 3);
   }, [letters]);
 
-  const handleComplete = (letter: Letter) => {
-    updateLetterStatus(letter.id, "Selesai");
+  const handleComplete = async (letter: Letter) => {
+    await updateLetterStatus(letter.id, "Selesai");
     setNotif({
       title: "Surat selesai diproses",
       message: `${letter.type} atas nama ${letter.applicant} sudah ditandai selesai.`,

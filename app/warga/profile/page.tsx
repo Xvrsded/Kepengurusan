@@ -5,10 +5,26 @@ import Image from "next/image";
 import { Bell, ChevronRight, Eye, EyeOff, FileText, Fingerprint, KeyRound, LogOut, MapPin, PencilLine, Phone, ShieldCheck, ShieldPlus, Smartphone, UserRound, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
 
-export default function WargaProfilePage() {
+  useAuthGuard();
+  const loadingCitizens = useAppStore((s) => s.loadingCitizens);
+  const fetchCitizens = useAppStore((s) => s.fetchCitizens);
+  useEffect(() => { fetchCitizens(); }, [fetchCitizens]);
+
+  if (loadingCitizens) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data profil...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   type SecurityActionModal = {
     mode: "confirm" | "result";
     action: "pin" | "sessions";
@@ -63,8 +79,8 @@ export default function WargaProfilePage() {
   const userIuran = iuran.filter((item) => item.citizenId === currentCitizen?.id).slice(0, 3);
   const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/login");
   };
 
