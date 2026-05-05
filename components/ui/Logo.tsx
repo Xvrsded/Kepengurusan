@@ -17,7 +17,7 @@ export default function Logo({ size = "medium", className = "" }: LogoProps) {
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <Image
-        src="/images/logo Pengurus.jpg"
+        src="/images/Logo%20Pengurus.jpg"
         alt="Logo Pengurus"
         width={size === "small" ? 32 : size === "medium" ? 48 : 64}
         height={size === "small" ? 32 : size === "medium" ? 48 : 64}
