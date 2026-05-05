@@ -954,7 +954,7 @@ export const useAppStore = create<AppStore>()(
       console.log("[SYNC] syncSupabaseUser called");
       set({ loading: true, isAuthReady: false });
       const { data: { user } } = await supabase.auth.getUser();
-      console.log("[SYNC] User from auth:", { hasUser: !!user, userId: user?.id });
+      console.log("[SYNC] User from auth:", { hasUser: !!user, userId: user?.id, email: user?.email });
       
       if (!user) {
         console.warn("[SYNC] No user found");
@@ -965,11 +965,15 @@ export const useAppStore = create<AppStore>()(
       console.log("[SYNC] Fetching profile data for user:", user.id);
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("name, phone, role")
+        .select("full_name, phone, role, email")
         .eq("id", user.id)
         .maybeSingle();
 
-      console.log("[SYNC] Profile fetch result:", { hasProfile: !!profile, error: error?.message });
+      console.log("[SYNC] Profile fetch result:", { 
+        hasProfile: !!profile, 
+        error: error?.message,
+        profileData: profile ? { id: profile.id, role: profile.role, email: profile.email } : null 
+      });
 
       if (error) {
         console.error("[SYNC] Gagal fetch profiles:", error.message);
@@ -1022,14 +1026,14 @@ export const useAppStore = create<AppStore>()(
         isAuthReady: true,
         loading: false,
         userProfile: {
-          name: profile.name ?? user.email ?? "",
+          name: profile.full_name ?? user.email ?? "",
           nik: profile.nik ?? "",
           address: profile.address ?? "",
           phone: profile.phone ?? "",
           role,
         },
       });
-      console.log("[SYNC] syncSupabaseUser completed successfully");
+      console.log("[SYNC] syncSupabaseUser completed successfully with role:", role);
     },
     setNotif: (payload: string | AppToast) =>
       set({
