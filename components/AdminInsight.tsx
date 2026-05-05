@@ -18,7 +18,7 @@ export function AdminInsight() {
 
     // Iuran compliance insight
     const totalUsers = profiles?.length || 0;
-    const paidUsers = new Set(iuranPayments.filter((p) => p.status === "Lunas").map((p) => p.user_id)).size;
+    const paidUsers = new Set(iuranPayments.filter((p) => p.status === "Lunas").map((p) => p.citizenId)).size;
     const complianceRate = totalUsers === 0 ? 0 : Math.round((paidUsers / totalUsers) * 100);
 
     if (complianceRate < 50) {
@@ -38,7 +38,7 @@ export function AdminInsight() {
     }
 
     // Pending letters insight
-    const pendingLetters = letters.filter((l) => l.status === "Proses").length;
+    const pendingLetters = letters.filter((l) => l.status === "pending").length;
     if (pendingLetters > 5) {
       insights.push({
         type: "warning",

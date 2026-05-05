@@ -105,7 +105,7 @@ export default function AdminIuranPage() {
         event: 'INSERT',
         schema: 'public',
         table: 'iuran_master'
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[ADMIN IURAN] Master realtime INSERT change:', payload);
         handleRealtimeChange();
       })
@@ -113,7 +113,7 @@ export default function AdminIuranPage() {
         event: 'UPDATE',
         schema: 'public',
         table: 'iuran_master'
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[ADMIN IURAN] Master realtime UPDATE change:', payload);
         handleRealtimeChange();
       })
@@ -121,7 +121,7 @@ export default function AdminIuranPage() {
         event: 'INSERT',
         schema: 'public',
         table: 'iuran_user'
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[ADMIN IURAN] User realtime INSERT change:', payload);
         handleRealtimeChange();
       })
@@ -129,11 +129,11 @@ export default function AdminIuranPage() {
         event: 'UPDATE',
         schema: 'public',
         table: 'iuran_user'
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[ADMIN IURAN] User realtime UPDATE change:', payload);
         handleRealtimeChange();
       })
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         if (status === 'SUBSCRIBED') {
           console.log('[ADMIN IURAN] Realtime subscribed');
         }
@@ -209,7 +209,7 @@ export default function AdminIuranPage() {
         setNotif({
           title: "Error",
           message: "User belum siap, silakan tunggu",
-          variant: "error",
+          variant: "warning",
           role: "admin"
         });
         setIsCreating(false);
@@ -232,7 +232,7 @@ export default function AdminIuranPage() {
         setNotif({
           title: "Error",
           message: result.message || "Gagal membuat iuran",
-          variant: "error",
+          variant: "warning",
           role: "admin"
         });
         setIsCreating(false);
@@ -256,7 +256,7 @@ export default function AdminIuranPage() {
       setNotif({
         title: "Gagal",
         message: err.message || "Terjadi kesalahan tidak terduga",
-        variant: "error",
+        variant: "warning",
         role: "admin"
       });
     } finally {

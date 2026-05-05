@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Clock3, FilePlus2, FileText, Search, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock3, FilePlus2, FileText, Search, Sparkles, AlertCircle } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import type { Letter } from "@/store/useAppStore";

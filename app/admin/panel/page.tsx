@@ -110,7 +110,7 @@ export default function AdminPanelPage() {
   const topLetterTypes = useMemo(() => {
     return Object.entries(
       letters.reduce<Record<string, number>>((acc, l) => {
-        acc[l.type] = (acc[l.type] ?? 0) + 1;
+        acc[l.jenis_surat] = (acc[l.jenis_surat] ?? 0) + 1;
         return acc;
       }, {})
     )
@@ -130,13 +130,8 @@ export default function AdminPanelPage() {
   }, [iuran]);
 
   const monthlyLetterCounts = useMemo(() => {
-    const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-    return Object.entries(
-      letters.reduce<Record<string, number>>((acc, l) => {
-        try { const d = new Date(l.date); const k = `${months[d.getMonth()]} ${d.getFullYear()}`; acc[k] = (acc[k] ?? 0) + 1; } catch { acc["Lainnya"] = (acc["Lainnya"] ?? 0) + 1; }
-        return acc;
-      }, {})
-    ).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    // Letter type has no date field, return empty array
+    return [] as [string, number][];
   }, [letters]);
 
   const monthlyIuranAmounts = useMemo(() => {
@@ -149,7 +144,7 @@ export default function AdminPanelPage() {
   }, [iuran]);
 
   const recentLetters = useMemo(() => {
-    return [...letters].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+    return [...letters].slice(0, 5);
   }, [letters]);
 
   const topPendingProfiles = useMemo(() => {
@@ -169,7 +164,7 @@ export default function AdminPanelPage() {
 
   const letterVolumeByType = useMemo(() => {
     return Object.entries(
-      letters.reduce<Record<string, number>>((acc, l) => { acc[l.type] = (acc[l.type] ?? 0) + 1; return acc; }, {})
+      letters.reduce<Record<string, number>>((acc, l) => { acc[l.jenis_surat] = (acc[l.jenis_surat] ?? 0) + 1; return acc; }, {})
     ).sort((a, b) => b[1] - a[1]);
   }, [letters]);
 
@@ -220,13 +215,8 @@ export default function AdminPanelPage() {
   }, [paidIuran.length, pendingIuran.length]);
 
   const monthlyLetterTrends = useMemo(() => {
-    const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-    return Object.entries(
-      letters.reduce<Record<string, number>>((acc, l) => {
-        try { const d = new Date(l.date); const k = `${months[d.getMonth()]} ${d.getFullYear()}`; acc[k] = (acc[k] ?? 0) + 1; } catch { acc["Lainnya"] = (acc["Lainnya"] ?? 0) + 1; }
-        return acc;
-      }, {})
-    ).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 8);
+    // Letter type has no date field, return empty array
+    return [] as [string, number][];
   }, [letters]);
 
   const monthlyRevenueTrends = useMemo(() => {
@@ -274,7 +264,7 @@ export default function AdminPanelPage() {
   const filteredLetters = useMemo(() => {
     if (!searchQuery.trim()) return letters;
     const q = searchQuery.toLowerCase();
-    return letters.filter((l) => l.type.toLowerCase().includes(q) || l.applicant.toLowerCase().includes(q) || l.status.toLowerCase().includes(q));
+    return letters.filter((l) => l.jenis_surat.toLowerCase().includes(q) || l.status.toLowerCase().includes(q));
   }, [letters, searchQuery]);
 
   const filteredIuran = useMemo(() => {
@@ -556,11 +546,11 @@ export default function AdminPanelPage() {
                     ) : (
                       recentLetters.map((letter) => (
                         <div key={letter.id} className="w-full flex items-start gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3">
-                          <div className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${letter.status === "Selesai" ? "bg-blue-500" : "bg-cyan-400"}`} />
+                          <div className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${letter.status === "approved" ? "bg-blue-500" : letter.status === "pending" ? "bg-cyan-400" : "bg-rose-400"}`} />
                           <div className="min-w-0">
-                            <p className="text-sm font-black text-slate-800 truncate">{letter.type}</p>
-                            <p className="text-xs text-slate-600">{letter.applicant} &middot; {letter.date}</p>
-                            <span className={`inline-flex mt-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${letter.status === "Selesai" ? "bg-blue-100 text-blue-600" : "bg-cyan-100 text-cyan-600"}`}>{letter.status}</span>
+                            <p className="text-sm font-black text-slate-800 truncate">{letter.jenis_surat}</p>
+                            <p className="text-xs text-slate-600">User ID: {letter.user_id.slice(0, 8)}...</p>
+                            <span className={`inline-flex mt-1 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${letter.status === "approved" ? "bg-blue-100 text-blue-600" : letter.status === "pending" ? "bg-cyan-100 text-cyan-600" : "bg-rose-100 text-rose-600"}`}>{letter.status}</span>
                           </div>
                         </div>
                       ))
@@ -927,13 +917,12 @@ export default function AdminPanelPage() {
                   ) : (
                     recentLetters.map((letter, i) => (
                       <div key={letter.id} className="w-full flex items-start gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
-                        <div className={`shrink-0 w-2.5 h-2.5 rounded-full mt-1.5 ${letter.status === "Selesai" ? "bg-blue-500" : "bg-cyan-400"}`} />
+                        <div className={`shrink-0 w-2.5 h-2.5 rounded-full mt-1.5 ${letter.status === "approved" ? "bg-blue-500" : letter.status === "pending" ? "bg-cyan-400" : "bg-rose-400"}`} />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-black text-slate-800 truncate">{letter.type}</p>
-                          <p className="text-xs text-slate-600">{letter.applicant}</p>
-                          <p className="text-[10px] text-blue-500 mt-0.5">{letter.date}</p>
+                          <p className="text-sm font-black text-slate-800 truncate">{letter.jenis_surat}</p>
+                          <p className="text-xs text-slate-600">User ID: {letter.user_id.slice(0, 8)}...</p>
                         </div>
-                        <span className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${letter.status === "Selesai" ? "bg-blue-100 text-blue-600" : "bg-cyan-100 text-cyan-600"}`}>{letter.status}</span>
+                        <span className={`shrink-0 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${letter.status === "approved" ? "bg-blue-100 text-blue-600" : letter.status === "pending" ? "bg-cyan-100 text-cyan-600" : "bg-rose-100 text-rose-600"}`}>{letter.status}</span>
                       </div>
                     ))
                   )}
@@ -951,19 +940,17 @@ export default function AdminPanelPage() {
                     <thead>
                       <tr className="border-b border-blue-100/70 bg-white/40 text-[11px] uppercase tracking-widest text-blue-500">
                         <th className="px-5 py-3 font-black">Jenis</th>
-                        <th className="px-5 py-3 font-black">Pemohon</th>
-                        <th className="px-5 py-3 font-black">Tanggal</th>
+                        <th className="px-5 py-3 font-black">User ID</th>
                         <th className="px-5 py-3 font-black">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredLetters.map((letter, index) => (
                         <tr key={letter.id} className={`border-b border-blue-50 transition-colors hover:bg-blue-50/30 ${index % 2 === 0 ? "bg-white/50" : "bg-cyan-50/20"}`}>
-                          <td className="px-5 py-4 text-sm font-black text-slate-800">{letter.type}</td>
-                          <td className="px-5 py-4 text-xs text-slate-600">{letter.applicant}</td>
-                          <td className="px-5 py-4 text-xs text-slate-600">{letter.date}</td>
+                          <td className="px-5 py-4 text-sm font-black text-slate-800">{letter.jenis_surat}</td>
+                          <td className="px-5 py-4 text-xs text-slate-600">User ID: {letter.user_id.slice(0, 8)}...</td>
                           <td className="px-5 py-4">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${letter.status === "Selesai" ? "bg-linear-to-r from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100" : "bg-linear-to-r from-blue-600 to-cyan-500 text-white"}`}>
+                            <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${letter.status === "approved" ? "bg-linear-to-r from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100" : letter.status === "pending" ? "bg-linear-to-r from-amber-500/10 to-orange-400/15 text-amber-600 border border-amber-100" : "bg-linear-to-r from-rose-500/10 to-red-400/15 text-rose-600 border border-rose-100"}`}>
                               {letter.status}
                             </span>
                           </td>
@@ -977,14 +964,13 @@ export default function AdminPanelPage() {
                     <div key={letter.id} className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 shadow-sm shadow-blue-50/60 transition-all hover:shadow-md">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-slate-800">{letter.type}</p>
-                          <p className="mt-1 text-xs text-slate-600">{letter.applicant}</p>
+                          <p className="text-sm font-black text-slate-800">{letter.jenis_surat}</p>
+                          <p className="mt-1 text-xs text-slate-600">User ID: {letter.user_id.slice(0, 8)}...</p>
                         </div>
-                        <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${letter.status === "Selesai" ? "bg-linear-to-r from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100" : "bg-linear-to-r from-blue-600 to-cyan-500 text-white"}`}>
+                        <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${letter.status === "approved" ? "bg-linear-to-r from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100" : letter.status === "pending" ? "bg-linear-to-r from-amber-500/10 to-orange-400/15 text-amber-600 border border-amber-100" : "bg-linear-to-r from-rose-500/10 to-red-400/15 text-rose-600 border border-rose-100"}`}>
                           {letter.status}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs text-blue-500">{letter.date}</p>
                     </div>
                   ))}
                 </div>
@@ -1037,13 +1023,13 @@ export default function AdminPanelPage() {
                           <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600"><Receipt size={16} /></div>
                         </div>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-slate-900">{t.rate}%</span>
+                          <span className="text-2xl font-black text-slate-900">{t.total > 0 ? Math.round((t.paid / t.total) * 100) : 0}%</span>
                           <span className="text-xs text-slate-500">terkumpul</span>
                         </div>
-                        <p className="text-xs font-black text-blue-600 mt-1">Rp {t.collected.toLocaleString("id-ID")} dari {t.paid}/{t.total} warga</p>
+                        <p className="text-xs font-black text-blue-600 mt-1">Rp {(t.amount * t.paid).toLocaleString("id-ID")} dari {t.paid}/{t.total} warga</p>
                         <div className="mt-3">
                           <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
-                            <div className="h-full rounded-full bg-linear-to-r from-blue-400 to-cyan-400 transition-all duration-700" style={{ width: `${t.rate}%` }} />
+                            <div className="h-full rounded-full bg-linear-to-r from-blue-400 to-cyan-400 transition-all duration-700" style={{ width: `${t.total > 0 ? Math.round((t.paid / t.total) * 100) : 0}%` }} />
                           </div>
                         </div>
                       </div>
@@ -1137,11 +1123,11 @@ export default function AdminPanelPage() {
                   {topPayingProfiles.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
                     <div className="space-y-3">
                       {topPayingProfiles.map((item, i) => (
-                        <div key={item.citizenId!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-2.5 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                        <div key={item.profile?.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-2.5 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                           <div className="shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600">{i + 1}</div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-800 truncate">{item.citizenId!.name}</p>
-                            <p className="text-xs text-slate-600">{item.citizenId!.phone}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{item.profile?.name}</p>
+                            <p className="text-xs text-slate-600">{item.profile?.phone}</p>
                           </div>
                           <span className="shrink-0 text-xs font-black text-blue-600">Rp {item.amount.toLocaleString("id-ID")}</span>
                         </div>
@@ -1167,7 +1153,7 @@ export default function AdminPanelPage() {
                     </thead>
                     <tbody>
                       {filteredIuran.map((item, index) => {
-                        const citizenIdName = profiles.find((c) => c.id === item.citizenId)?.name ?? `Warga #${item.citizenId}`;
+                        const citizenIdName = profiles.find((c) => c.id === String(item.citizenId))?.name ?? `Warga #${item.citizenId}`;
                         return (
                           <tr key={item.id} className={`border-b border-blue-50 transition-colors hover:bg-blue-50/30 ${index % 2 === 0 ? "bg-white/50" : "bg-cyan-50/20"}`}>
                             <td className="px-5 py-4 text-sm font-black text-slate-800">{item.month}</td>
@@ -1186,7 +1172,7 @@ export default function AdminPanelPage() {
                 </div>
                 <div className="md:hidden grid gap-3 p-4">
                   {filteredIuran.map((item) => {
-                    const citizenIdName = profiles.find((c) => c.id === item.citizenId)?.name ?? `Warga #${item.citizenId}`;
+                    const citizenIdName = profiles.find((c) => c.id === String(item.citizenId))?.name ?? `Warga #${item.citizenId}`;
                     return (
                       <div key={item.id} className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 shadow-sm shadow-blue-50/60 transition-all hover:shadow-md">
                         <div className="flex items-start justify-between gap-3">
@@ -1223,12 +1209,12 @@ export default function AdminPanelPage() {
               {/* Summary Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                 {[
-                  { label: "Total Warga", value: profiles.length, icon: Users, subtitle: "Terdaftar", color: "text-blue-600" },
-                  { label: "Total Surat", value: letters.length, icon: FileText, subtitle: `${completionRate}% selesai`, color: "text-cyan-600" },
-                  { label: "Dana Masuk", value: `Rp ${(totalCollected / 1000).toFixed(0)}rb`, icon: Wallet, subtitle: "Akumulasi", color: "text-blue-600" },
-                  { label: "Efisiensi", value: `${Math.round((completionRate + collectionRate) / 2)}%`, icon: Activity, subtitle: "Rata-rata", color: "text-cyan-600" },
-                  { label: "Tunggakan", value: pendingIuran.length, icon: AlertTriangle, subtitle: "Iuran pending", color: "text-rose-500" },
-                  { label: "Notifikasi", value: notificationStats.unread, icon: Bell, subtitle: "Belum dibaca", color: "text-amber-500" },
+                  { label: "Total Warga", value: profiles.length, icon: Users, subtitle: "Terdaftar", color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Total Surat", value: letters.length, icon: FileText, subtitle: `${completionRate}% selesai`, color: "text-cyan-600", bg: "bg-cyan-50" },
+                  { label: "Dana Masuk", value: `Rp ${(totalCollected / 1000).toFixed(0)}rb`, icon: Wallet, subtitle: "Akumulasi", color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Efisiensi", value: `${Math.round((completionRate + collectionRate) / 2)}%`, icon: Activity, subtitle: "Rata-rata", color: "text-cyan-600", bg: "bg-cyan-50" },
+                  { label: "Tunggakan", value: pendingIuran.length, icon: AlertTriangle, subtitle: "Iuran pending", color: "text-rose-500", bg: "bg-rose-50" },
+                  { label: "Notifikasi", value: notificationStats.unread, icon: Bell, subtitle: "Belum dibaca", color: "text-amber-500", bg: "bg-amber-50" },
                 ].map((card, i) => (
                   <div key={card.label} className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-4 transition-all hover:scale-[1.02] hover:shadow-md" style={{ animationDelay: `${i * 60}ms` }}>
                     <div className="flex items-center gap-2 mb-3">
@@ -1504,12 +1490,12 @@ export default function AdminPanelPage() {
                     {topPayingProfiles.length === 0 ? (
                       <p className="text-xs text-slate-600 text-center py-4">Belum ada data pembayaran</p>
                     ) : (
-                      topPayingProfiles.map(({ citizenId, amount }, i) => (
-                        <div key={citizenId!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                      topPayingProfiles.map(({ profile, amount }, i) => (
+                        <div key={profile?.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                           <div className="w-7 h-7 rounded-full bg-linear-to-br from-blue-500 to-cyan-400 text-white flex items-center justify-center text-[10px] font-black shrink-0">{i + 1}</div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-800 truncate">{citizenId!.name}</p>
-                            <p className="text-xs text-slate-600">{citizenId!.phone}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{profile?.name}</p>
+                            <p className="text-xs text-slate-600">{profile?.phone}</p>
                           </div>
                           <span className="shrink-0 text-xs font-black text-blue-600">Rp {amount.toLocaleString("id-ID")}</span>
                         </div>
@@ -1527,12 +1513,12 @@ export default function AdminPanelPage() {
                     {topPendingProfiles.length === 0 ? (
                       <p className="text-xs text-slate-600 text-center py-4">Tidak ada tunggakan</p>
                     ) : (
-                      topPendingProfiles.map(({ citizenId, count }, i) => (
-                        <div key={citizenId!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                      topPendingProfiles.map(({ profile, count }, i) => (
+                        <div key={profile?.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                           <div className="w-7 h-7 rounded-full bg-rose-400 text-white flex items-center justify-center text-[10px] font-black shrink-0">{i + 1}</div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-800 truncate">{citizenId!.name}</p>
-                            <p className="text-xs text-slate-600">{citizenId!.phone}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{profile?.name}</p>
+                            <p className="text-xs text-slate-600">{profile?.phone}</p>
                           </div>
                           <span className="shrink-0 bg-rose-100 text-rose-600 text-[10px] font-black px-2.5 py-1 rounded-full">{count} pending</span>
                         </div>

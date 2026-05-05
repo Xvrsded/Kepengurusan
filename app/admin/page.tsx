@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
           schema: "public",
           table: "iuran_user",
         },
-        (payload) => {
+        (payload: any) => {
           console.log("💰 IURAN_USER CHANGE:", payload);
           fetchAllIuranUser();
         }
@@ -68,7 +68,7 @@ export default function AdminDashboardPage() {
           schema: "public",
           table: "iuran_master",
         },
-        (payload) => {
+        (payload: any) => {
           console.log("💰 IURAN_MASTER CHANGE:", payload);
           fetchIuranMaster();
         }

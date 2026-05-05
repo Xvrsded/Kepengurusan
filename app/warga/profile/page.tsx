@@ -79,10 +79,10 @@ export default function WargaProfilePage() {
     ? citizens.find((citizen) => citizen.nik === userProfile.nik) ?? citizens[0]
     : null;
   const userLetters = Array.isArray(letters)
-    ? letters.filter((letter) => letter.applicant === (currentCitizen?.name ?? userProfile.name)).slice(0, 3)
+    ? letters.slice(0, 3)
     : [];
   const userIuran = Array.isArray(iuran)
-    ? iuran.filter((item) => item.citizenId === currentCitizen?.id).slice(0, 3)
+    ? iuran.filter((item) => String(item.citizenId) === String(currentCitizen?.id)).slice(0, 3)
     : [];
   const unreadNotifications = Array.isArray(notifications)
     ? notifications.filter((notification) => !notification.isRead).length
@@ -305,11 +305,11 @@ export default function WargaProfilePage() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-white text-blue-600 flex items-center justify-center shadow-sm"><FileText size={16} /></div>
                         <div>
-                          <p className="text-sm font-semibold text-slate-700">{letter.type}</p>
-                          <p className="text-xs text-slate-500">{letter.date}</p>
+                          <p className="text-sm font-semibold text-slate-700">{letter.jenis_surat}</p>
+                          <p className="text-xs text-slate-500">User ID: {letter.user_id.slice(0, 8)}...</p>
                         </div>
                       </div>
-                      <span className={`text-xs font-bold ${letter.status === "Selesai" ? "text-emerald-600" : "text-orange-500"}`}>{letter.status}</span>
+                      <span className={`text-xs font-bold ${letter.status === "approved" ? "text-emerald-600" : letter.status === "pending" ? "text-orange-500" : "text-red-500"}`}>{letter.status}</span>
                     </div>
                   ))
                 )}

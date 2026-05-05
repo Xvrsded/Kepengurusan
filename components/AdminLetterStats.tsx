@@ -7,9 +7,9 @@ export function AdminLetterStats() {
   const loadingLetters = useAppStore((s) => s.loadingLetters);
 
   const totalSurat = letters.length;
-  const pendingSurat = letters.filter((l) => l.status === "Proses").length;
-  const completedSurat = letters.filter((l) => l.status === "Selesai").length;
-  const rejectedSurat = letters.filter((l) => l.status === "Ditolak").length;
+  const pendingSurat = letters.filter((l) => l.status === "pending").length;
+  const completedSurat = letters.filter((l) => l.status === "approved").length;
+  const rejectedSurat = letters.filter((l) => l.status === "rejected").length;
 
   const recentLetters = letters.slice(0, 5);
 
@@ -103,15 +103,14 @@ export function AdminLetterStats() {
                       {getStatusIcon(letter.status)}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-black text-slate-800 truncate">{letter.type}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{letter.applicant}</p>
+                      <p className="text-sm font-black text-slate-800 truncate">{letter.jenis_surat}</p>
+                      <p className="text-xs text-slate-500 truncate">User ID: {letter.user_id.slice(0, 8)}...</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${getStatusColor(letter.status)}`}>
                       {letter.status}
                     </span>
-                    <p className="text-[10px] text-slate-400 mt-1">{new Date(letter.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
                   </div>
                 </div>
               ))}

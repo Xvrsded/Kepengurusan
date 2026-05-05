@@ -80,7 +80,7 @@ export default function WargaDashboardPage() {
           schema: "public",
           table: "letters",
         },
-        (payload) => {
+        (payload: any) => {
           console.log("📨 LETTER CHANGE:", payload);
           fetchLetters();
         }
@@ -92,7 +92,7 @@ export default function WargaDashboardPage() {
           schema: "public",
           table: "iuran_user",
         },
-        (payload) => {
+        (payload: any) => {
           console.log("💰 IURAN CHANGE:", payload);
           if (supabaseUser?.id) {
             fetchUserIuran(supabaseUser.id);
@@ -106,12 +106,14 @@ export default function WargaDashboardPage() {
           schema: "public",
           table: "panic_alerts",
         },
-        (payload) => {
-          console.log("🚨 ALERT CHANGE:", payload);
+        (payload: any) => {
+          console.log("🚨 PANIC ALERT CHANGE:", payload);
           fetchNotifications();
         }
       )
-      .subscribe();
+      .subscribe((status: any) => {
+        console.log("📣 SUBSCRIBED:", status);
+      });
 
     return () => {
       console.log("🧹 CLEANUP REALTIME");
@@ -155,12 +157,12 @@ export default function WargaDashboardPage() {
   const greeting = getGreeting();
 
   const myLetters = useMemo(
-    () => letters.filter((letter) => letter.applicant === userProfile.name),
-    [letters, userProfile.name]
+    () => letters.filter((letter) => letter.user_id === supabaseUser?.id),
+    [letters, supabaseUser?.id]
   );
 
-  const pendingLetters = myLetters.filter((letter) => letter.status === "Proses");
-  const completedLetters = myLetters.filter((letter) => letter.status === "Selesai");
+  const pendingLetters = myLetters.filter((letter) => letter.status === "pending");
+  const completedLetters = myLetters.filter((letter) => letter.status === "approved");
 
   const myIuran = iuranUser;
 
@@ -351,19 +353,19 @@ export default function WargaDashboardPage() {
                 <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 bg-slate-50">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-                      lastLetter.status === "Selesai" ? "bg-green-100" : lastLetter.status === "Proses" ? "bg-amber-100" : "bg-red-100"
+                      lastLetter.status === "approved" ? "bg-green-100" : lastLetter.status === "pending" ? "bg-yellow-100" : "bg-red-100"
                     }`}>
                       <FileText size={18} className={
-                        lastLetter.status === "Selesai" ? "text-green-600" : lastLetter.status === "Proses" ? "text-amber-600" : "text-red-600"
+                        lastLetter.status === "approved" ? "text-green-600" : lastLetter.status === "pending" ? "text-yellow-600" : "text-red-600"
                       } />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Surat Terakhir</p>
-                      <p className="text-sm font-black text-slate-800">{lastLetter.type}</p>
+                      <p className="text-sm font-black text-slate-800">{lastLetter.jenis_surat}</p>
                     </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    lastLetter.status === "Selesai" ? "bg-green-100 text-green-700" : lastLetter.status === "Proses" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
+                    lastLetter.status === "approved" ? "bg-green-100 text-green-700" : lastLetter.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"
                   }`}>
                     {lastLetter.status}
                   </span>

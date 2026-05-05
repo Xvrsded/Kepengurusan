@@ -65,10 +65,10 @@ export default function WargaIuranPage() {
         schema: 'public',
         table: 'iuran_user',
         filter: `user_id=eq.${userId}`
-      }, (payload) => {
+      }, (payload: any) => {
         handleRealtimeChange(payload);
       })
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         if (status === 'SUBSCRIBED') {
           console.log('[WARGA IURAN] Realtime subscribed');
         }
@@ -148,7 +148,7 @@ export default function WargaIuranPage() {
 
       if (error) {
         console.error('[WARGA IURAN] Payment error:', error.message || error.details || JSON.stringify(error));
-        setNotif({ title: "Gagal", message: "Pembayaran gagal, silakan coba lagi", variant: "error", role: "warga" });
+        setNotif({ title: "Gagal", message: "Pembayaran gagal, silakan coba lagi", variant: "warning", role: "warga" });
         return;
       }
 
@@ -157,7 +157,7 @@ export default function WargaIuranPage() {
       setNotif({ title: "Berhasil", message: "Pembayaran berhasil dikonfirmasi", variant: "success", role: "warga" });
     } catch (err) {
       console.error('[WARGA IURAN] Payment exception:', err);
-      setNotif({ title: "Gagal", message: "Terjadi kesalahan", variant: "error", role: "warga" });
+      setNotif({ title: "Gagal", message: "Terjadi kesalahan", variant: "warning", role: "warga" });
     } finally {
       setPayingId(null);
     }

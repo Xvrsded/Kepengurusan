@@ -674,12 +674,12 @@ export const useAppStore = create<AppStore>()(
             schema: "public",
             table: "notifications",
           },
-          async (payload) => {
+          async (payload: any) => {
             console.log("Notification change:", payload);
             await state.fetchNotifications();
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log("Subscribed to notifications");
           }
@@ -695,12 +695,12 @@ export const useAppStore = create<AppStore>()(
             schema: "public",
             table: "iuran",
           },
-          async (payload) => {
+          async (payload: any) => {
             console.log("Iuran change:", payload);
             await state.fetchIuran();
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log("Subscribed to iuran");
           }
@@ -716,12 +716,12 @@ export const useAppStore = create<AppStore>()(
             schema: "public",
             table: "iuran_payments",
           },
-          async (payload) => {
+          async (payload: any) => {
             console.log("Iuran Payments change:", payload);
             await state.fetchIuranPayments();
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log("Subscribed to iuran_payments");
           }
@@ -737,12 +737,12 @@ export const useAppStore = create<AppStore>()(
             schema: "public",
             table: "letters",
           },
-          async (payload) => {
+          async (payload: any) => {
             console.log("Letter change:", payload);
             await state.fetchLetters();
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log("Subscribed to letters");
           }
@@ -758,12 +758,12 @@ export const useAppStore = create<AppStore>()(
             schema: "public",
             table: "iuran_master",
           },
-          async (payload) => {
+          async (payload: any) => {
             console.log("[REALTIME] Iuran Master change:", payload);
             await state.fetchIuranMaster();
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log("[REALTIME] Subscribed to iuran_master");
           }
@@ -779,7 +779,7 @@ export const useAppStore = create<AppStore>()(
             schema: "public",
             table: "iuran_user",
           },
-          async (payload) => {
+          async (payload: any) => {
             console.log("[REALTIME] Iuran User change:", payload);
             // Refresh based on user role
             if (state.role === "admin") {
@@ -789,7 +789,7 @@ export const useAppStore = create<AppStore>()(
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log("[REALTIME] Subscribed to iuran_user");
           }

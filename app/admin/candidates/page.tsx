@@ -97,7 +97,9 @@ export default function CandidatesPage() {
     } else {
       const result = await candidatesService.addCandidate({
         name: name.trim(),
-        description: description.trim() || null
+        description: description.trim() || null,
+        photo_url: null,
+        is_active: true
       });
 
       setIsSaving(false);

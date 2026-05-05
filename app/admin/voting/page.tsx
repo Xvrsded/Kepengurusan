@@ -54,7 +54,7 @@ export default function AdminVotingPage() {
       
       if (cErr) {
         console.error('[VOTING DASHBOARD] Fetch candidates error:', cErr.message || cErr.details || JSON.stringify(cErr));
-        setNotif({ title: "Error", message: "Gagal memuat data kandidat", variant: "error", role: "admin" });
+        setNotif({ title: "Error", message: "Gagal memuat data kandidat", variant: "warning", role: "admin" });
         return;
       }
       
@@ -65,13 +65,13 @@ export default function AdminVotingPage() {
       
       if (vErr) {
         console.error('[VOTING DASHBOARD] Fetch votes error:', vErr.message || vErr.details || JSON.stringify(vErr));
-        setNotif({ title: "Error", message: "Gagal memuat data suara", variant: "error", role: "admin" });
+        setNotif({ title: "Error", message: "Gagal memuat data suara", variant: "warning", role: "admin" });
         return;
       }
       
       // Combine data with JavaScript - calculate vote_count manually
-      const candidatesWithVotes = (cData || []).map((candidate) => {
-        const voteCount = (vData || []).filter((vote) => vote.candidate_id === candidate.id).length;
+      const candidatesWithVotes = (cData || []).map((candidate: any) => {
+        const voteCount = (vData || []).filter((vote: any) => vote.candidate_id === candidate.id).length;
         return {
           ...candidate,
           vote_count: voteCount,
@@ -80,7 +80,7 @@ export default function AdminVotingPage() {
       });
       
       // Sort by vote_count descending
-      candidatesWithVotes.sort((a, b) => b.vote_count - a.vote_count);
+      candidatesWithVotes.sort((a: any, b: any) => b.vote_count - a.vote_count);
       
       console.log('[VOTING DASHBOARD] Fetched:', candidatesWithVotes.length, 'candidates');
       setCandidates(candidatesWithVotes);
@@ -167,7 +167,9 @@ export default function AdminVotingPage() {
       const { error } = await supabase
         .from('candidates')
         .insert({
-          name: candidateName
+          name: candidateName,
+          photo_url: null,
+          is_active: true
         });
 
       if (error) {
@@ -240,7 +242,7 @@ export default function AdminVotingPage() {
         event: 'INSERT',
         schema: 'public',
         table: 'candidates'
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[VOTING DASHBOARD] Realtime INSERT change:', payload);
         handleRealtimeChange();
       })
@@ -248,11 +250,11 @@ export default function AdminVotingPage() {
         event: 'UPDATE',
         schema: 'public',
         table: 'candidates'
-      }, (payload) => {
+      }, (payload: any) => {
         console.log('[VOTING DASHBOARD] Realtime UPDATE change:', payload);
         handleRealtimeChange();
       })
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         if (status === 'SUBSCRIBED') {
           console.log('[VOTING DASHBOARD] Realtime subscribed');
         }
@@ -568,7 +570,7 @@ export default function AdminVotingPage() {
             <div className="space-y-4">
               {stats.withPercentage.map((item, index) => {
                 const isLeader = item.id === stats.leader?.id;
-                const percentage = parseFloat(item.percentage);
+                const percentage = parseFloat(String(item.percentage));
                 
                 return (
                   <div key={item.id} className="space-y-2">

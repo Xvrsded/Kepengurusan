@@ -44,7 +44,7 @@ export function useRealtime(
             });
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           if (status === "SUBSCRIBED") {
             console.log(`Subscribed to ${table} changes`);
           } else if (status === "CLOSED" || status === "CHANNEL_ERROR") {

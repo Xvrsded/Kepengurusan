@@ -48,7 +48,7 @@ export default function AdminSuratPage() {
   const groupedTypes = useMemo(() => {
     return Object.entries(
       letters.reduce<Record<string, number>>((acc, letter) => {
-        acc[letter.type] = (acc[letter.type] ?? 0) + 1;
+        acc[letter.jenis_surat] = (acc[letter.jenis_surat] ?? 0) + 1;
         return acc;
       }, {})
     )
@@ -186,13 +186,13 @@ export default function AdminSuratPage() {
           <div className="rounded-4xl bg-white border border-blue-100/70 p-5 shadow-sm shadow-blue-100/50">
             <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 flex items-center justify-center mb-4 border border-blue-100"><CalendarDays size={18} /></div>
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Surat Terbaru</p>
-            <p className="mt-2 text-sm font-black text-slate-900">{latestIncoming?.type || "Surat"}</p>
+            <p className="font-black text-slate-900">{latestIncoming?.jenis_surat || "Surat"}</p>
             <p className="mt-1 text-xs text-slate-600">{latestIncoming ? `User ID: ${latestIncoming.user_id.slice(0, 8)}...` : "Menunggu data terbaru"}</p>
           </div>
           <div className="rounded-4xl bg-white border border-blue-100/70 p-5 shadow-sm shadow-blue-100/50">
             <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 flex items-center justify-center mb-4 border border-blue-100"><CircleAlert size={18} /></div>
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Prioritas Hari Ini</p>
-            <p className="mt-2 text-sm font-black text-slate-900">{priorityLetters[0]?.type || "Surat"}</p>
+            <p className="mt-2 text-sm font-black text-slate-900">{priorityLetters[0]?.jenis_surat || "Surat"}</p>
             <p className="mt-1 text-xs text-slate-600">{priorityLetters[0] ? `User ID: ${priorityLetters[0].user_id.slice(0, 8)}... perlu tindak lanjut` : "Tidak ada antrean prioritas"}</p>
           </div>
         </div>
@@ -242,7 +242,7 @@ export default function AdminSuratPage() {
                       {letter.status === "approved" ? <CheckCircle2 size={20} /> : letter.status === "rejected" ? <CircleAlert size={20} /> : <Clock3 size={20} />}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-black text-slate-800 leading-snug">{letter.type || "Surat"}</h4>
+                      <h4 className="text-sm font-black text-slate-800 leading-snug">{letter.jenis_surat || "Surat"}</h4>
                       <p className="text-xs text-slate-600 mt-1">User ID: {letter.user_id.slice(0, 8)}...</p>
                       {letter.admin_note && (
                         <p className="text-xs text-slate-500 mt-1 italic">Catatan: {letter.admin_note}</p>
@@ -255,7 +255,7 @@ export default function AdminSuratPage() {
                 </div>
 
                 <div className="mt-4 flex gap-3">
-                  <button onClick={() => setNotif(`Surat ${letter.type} sedang ${letter.status}.`)} className="flex-1 rounded-2xl border border-blue-100 bg-linear-to-br from-white to-cyan-50/70 py-3 text-sm font-bold text-blue-600 transition-all hover:scale-[1.01] active:scale-95">
+                  <button onClick={() => setNotif(`Surat ${letter.jenis_surat} sedang ${letter.status}.`)} className="flex-1 rounded-2xl border border-blue-100 bg-linear-to-br from-white to-cyan-50/70 py-3 text-sm font-bold text-blue-600 transition-all hover:scale-[1.01] active:scale-95">
                     Lihat Ringkas
                   </button>
                   {letter.status === "pending" ? (
