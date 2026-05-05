@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
   const setNotif = useAppStore((s) => s.setNotif);
+  const syncSupabaseUser = useAppStore((s) => s.syncSupabaseUser);
   const supabase = createClient();
 
   const [fullName, setFullName] = useState("");
@@ -53,6 +54,9 @@ export default function RegisterPage() {
 
       // auto login
       await supabase.auth.signInWithPassword({ email, password });
+
+      // Sync role to application state
+      await syncSupabaseUser();
 
       // Redirect to warga dashboard (new users are always warga)
       router.push("/warga");

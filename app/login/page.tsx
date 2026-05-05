@@ -11,6 +11,7 @@ import Logo from "@/components/ui/Logo";
 export default function LoginPage() {
   const router = useRouter();
   const setNotif = useAppStore((s) => s.setNotif);
+  const syncSupabaseUser = useAppStore((s) => s.syncSupabaseUser);
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -47,6 +48,9 @@ export default function LoginPage() {
         .select("role")
         .eq("id", data.user.id)
         .single();
+
+      // Sync role to application state
+      await syncSupabaseUser();
 
       // Redirect based on role
       if (profile?.role === "admin") {
