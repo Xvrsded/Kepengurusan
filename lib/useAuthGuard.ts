@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "./supabaseClient";
+import { useAppStore } from "@/store/useAppStore";
 
 export function useAuthGuard() {
-  const router = useRouter();
+  const user = useAppStore((s) => s.supabaseUser);
+  const role = useAppStore((s) => s.role);
+  const loading = useAppStore((s) => s.loading);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    supabase.auth.getUser().then(({ data, error }) => {
-      if (cancelled) return;
-      if (error || !data.user) {
-        router.replace("/login");
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+  // PURE GUARD: Only returns state, NO redirect logic
+  // Redirects are handled ONLY by login page (single redirect point)
+  return {
+    isAuthenticated: !!user,
+    role,
+    loading
+  };
 }

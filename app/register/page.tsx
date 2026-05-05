@@ -4,97 +4,60 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, LayoutDashboard, Mail, Lock, Eye, EyeOff, User, Phone } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/client";
 import { useAppStore } from "@/store/useAppStore";
 
 export default function RegisterPage() {
   const router = useRouter();
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
   const setNotif = useAppStore((s) => s.setNotif);
-  const syncSupabaseUser = useAppStore((s) => s.syncSupabaseUser);
+  const supabase = createClient();
 
-  const [name, setName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.replace("/dashboard");
-    }
-  }, [isLoggedIn, router]);
-
-  const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim() || !password || !confirmPassword) {
-      setNotif("Semua field wajib diisi.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setNotif("Konfirmasi password tidak cocok.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setNotif("Password minimal 6 karakter.");
-      return;
-    }
-
-    setIsLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: {
-          name: name.trim(),
-          phone: phone.trim(),
-          role: "warga",
-        },
-      },
-    });
-    setIsLoading(false);
-
-    if (error) {
       setNotif({
-        title: "Registrasi Gagal",
-        message: error.message || "Terjadi kesalahan saat mendaftar.",
-        variant: "warning",
-      });
-      return;
-    }
-
-    if (data.user) {
-      // Cek apakah data citizens sudah ada untuk mencegah duplikat
-      const { data: existing } = await supabase
-        .from("citizens")
-        .select("id")
-        .eq("id", data.user.id)
-        .single();
-
-      if (!existing) {
-        const { error: insertError } = await supabase.from("citizens").insert({
-          id: data.user.id,
-          name: name.trim(),
-          phone: phone.trim(),
-          role: "warga",
-        });
-
-        if (insertError) {
-          console.error("Gagal menyimpan data citizens:", insertError.message);
-        }
-      }
-
-      await syncSupabaseUser();
-
-      setNotif({
-        title: "Registrasi Berhasil",
-        message: "Akun berhasil dibuat. Selamat datang!",
+        title: "Sudah Login",
+        message: "Anda sudah login. Silakan navigasi ke halaman yang diinginkan.",
         variant: "success",
       });
-      router.push("/dashboard");
+    }
+  }, [isLoggedIn, setNotif]);
+
+  const handleRegister = async () => {
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      await supabase.from("profiles").insert({
+        id: data.user.id,
+        full_name: fullName,
+        phone: phone,
+        role: "warga",
+      });
+
+      // auto login
+      await supabase.auth.signInWithPassword({ email, password });
+
+      window.location.href = "/";
+
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -120,8 +83,8 @@ export default function RegisterPage() {
               <User size={16} className="text-slate-400" />
               <input
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
                 placeholder="Masukkan nama lengkap"
                 className="w-full bg-transparent outline-none text-sm text-slate-800"
               />
@@ -177,26 +140,12 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-1">Konfirmasi Password</p>
-            <div className="flex items-center gap-2">
-              <Lock size={16} className="text-slate-400" />
-              <input
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-transparent outline-none text-sm text-slate-800"
-              />
-            </div>
-          </div>
-
           <button
             onClick={handleRegister}
-            disabled={isLoading}
+            disabled={loading}
             className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isLoading ? "Memuat..." : "Daftarkan Akun"}
+            {loading ? "Loading..." : "Daftar"}
           </button>
 
           <p className="text-center text-sm text-slate-500 mt-4">

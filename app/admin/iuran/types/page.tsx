@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Plus, Pencil, Trash2, X, Receipt, CalendarDays, Tag, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
+import type { IuranType } from "@/store/useAppStore";
 
+export default function AdminIuranTypesPage() {
   const router = useRouter();
   const iuranTypes = useAppStore((s) => s.iuranTypes);
   const iuranPayments = useAppStore((s) => s.iuranPayments);
@@ -25,9 +27,14 @@ import Notification from "@/components/Notification";
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    type: "monthly" | "weekly" | "custom";
+    amount: string;
+    description: string;
+  }>({
     name: "",
-    type: "monthly" as "monthly" | "weekly" | "custom",
+    type: "monthly",
     amount: "",
     description: "",
   });
@@ -37,22 +44,11 @@ import Notification from "@/components/Notification";
     fetchIuranPayments();
   }, [fetchIuranTypes, fetchIuranPayments]);
 
-  if (loadingIuranTypes || loadingIuranPayments) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-slate-500 font-bold">Memuat data jenis iuran...</span>
-          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  const typeLabels: Record<string, string> = {
+  const typeLabels: Record<string, string> = useMemo(() => ({
     monthly: "Bulanan",
     weekly: "Mingguan",
     custom: "Khusus",
-  };
+  }), []);
 
   const typeColors: Record<string, string> = {
     monthly: "bg-blue-500",
@@ -75,7 +71,7 @@ import Notification from "@/components/Notification";
     setEditingType(t);
     setForm({
       name: t.name,
-      type: t.type,
+      type: t.type as "monthly" | "weekly" | "custom",
       amount: String(t.amount),
       description: t.description ?? "",
     });
@@ -114,7 +110,8 @@ import Notification from "@/components/Notification";
     }, 400);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number | null) => {
+    if (id === null) return;
     const res = (await deleteIuranType(id)) as { success: boolean; message: string };
     setNotif({ title: res.success ? "Dihapus" : "Gagal", message: res.message, variant: res.success ? "success" : "warning", role: "admin" });
     setDeleteConfirmId(null);
@@ -124,27 +121,34 @@ import Notification from "@/components/Notification";
   const getPaidCount = (typeId: number) => iuranPayments.filter((p) => p.iuranTypeId === typeId && p.status === "Lunas").length;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden pb-24">
+    <div className="min-h-screen w-full max-w-md mx-auto bg-slate-50 relative overflow-x-hidden overflow-y-auto pb-28" style={{ paddingBottom: "calc(7rem + env(safe-area-inset-bottom))" }}>
       <Notification />
-
-      <div className="bg-linear-to-b from-cyan-500 via-blue-600 to-blue-700 text-white px-6 pt-7 pb-8 relative overflow-hidden animate-in fade-in duration-500">
-        <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-cyan-200/35 blur-3xl" />
-        <div className="absolute top-10 left-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-sky-200/20 blur-3xl" />
-        <div className="relative z-10 flex items-start justify-between gap-3">
-          <div>
-            <div className="inline-flex items-center rounded-full border border-white/20 bg-[rgba(255,255,255,0.14)] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
-              <Tag size={12} className="mr-1.5" /> Manajemen Iuran
-            </div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight">Jenis Iuran</h1>
-            <p className="text-sm text-blue-50/92 mt-3 leading-relaxed max-w-80">Kelola semua jenis iuran: tambah, ubah nominal, atau hapus sesuai kebutuhan warga.</p>
-          </div>
-          <button onClick={() => router.push("/admin/iuran")} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-[rgba(255,255,255,0.14)] text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shrink-0">
-            <ArrowLeft size={16} />
-          </button>
+      <div style={{ display: loadingIuranTypes || loadingIuranPayments ? 'block' : 'none' }} className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data jenis iuran...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
         </div>
       </div>
+      <div style={{ display: !(loadingIuranTypes || loadingIuranPayments) ? 'block' : 'none' }}>
+        <div className="bg-linear-to-b from-cyan-500 via-blue-600 to-blue-700 text-white px-6 pt-7 pb-8 relative overflow-hidden animate-in fade-in duration-500">
+          <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-cyan-200/35 blur-3xl" />
+          <div className="absolute top-10 left-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-sky-200/20 blur-3xl" />
+          <div className="absolute inset-0 bg-linear-to-br from-white/8 via-transparent to-blue-900/10" />
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center rounded-full border border-white/20 bg-[rgba(255,255,255,0.14)] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
+                <Receipt size={12} className="mr-1.5" /> Jenis Iuran
+              </div>
+              <h1 className="mt-3 text-3xl font-black tracking-tight">Jenis Iuran</h1>
+              <p className="text-sm text-blue-50/92 mt-3 leading-relaxed max-w-80">Kelola semua jenis iuran: tambah, ubah nominal, atau hapus sesuai kebutuhan warga.</p>
+            </div>
+            <button onClick={() => router.push("/admin/iuran")} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-[rgba(255,255,255,0.14)] text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95 shrink-0">
+              <ArrowLeft size={16} />
+            </button>
+          </div>
+        </div>
 
-      <div className="px-6 -mt-4 space-y-4 pb-6">
+      <div className="px-6 mt-4 space-y-4 pb-6">
         {loadingIuranTypes && (
           <div className="flex items-center justify-center gap-2 py-3">
             <div className="h-5 w-5 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" />
@@ -164,7 +168,7 @@ import Notification from "@/components/Notification";
               <Receipt size={24} className="text-blue-400" />
             </div>
             <p className="text-sm font-black text-slate-700">Belum Ada Jenis Iuran</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-[240px] mx-auto">Tambahkan jenis iuran pertama untuk mulai mencatat pembayaran warga.</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-60 mx-auto">Tambahkan jenis iuran pertama untuk mulai mencatat pembayaran warga.</p>
             <button onClick={openAdd} className="mt-4 rounded-2xl bg-blue-600 px-5 py-2.5 text-xs font-black text-white transition-all hover:bg-blue-700">Tambah Jenis Iuran</button>
           </div>
         ) : (
@@ -263,20 +267,6 @@ import Notification from "@/components/Notification";
               </div>
             </div>
 
-            <div className="mt-6 flex gap-3">
-              <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="flex-1 rounded-2xl border border-blue-100 bg-white py-3 text-xs font-black text-slate-600 transition-all hover:bg-slate-50">Batal</button>
-              <button onClick={handleSubmit} disabled={isLoading} className="flex-1 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 py-3 text-xs font-black text-white shadow-lg shadow-blue-100 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-60">
-                {isLoading ? "Menyimpan..." : editingType ? "Simpan Perubahan" : "Tambahkan"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {deleteConfirmId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
-          <div className="relative w-full max-w-sm bg-white rounded-4xl p-6 shadow-2xl mx-4 animate-in zoom-in duration-300">
             <div className="w-14 h-14 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={24} className="text-rose-500" />
             </div>
@@ -284,11 +274,13 @@ import Notification from "@/components/Notification";
             <p className="text-xs text-slate-600 text-center mt-2">Jenis iuran ini akan dihapus secara permanen. Pastikan tidak ada data pembayaran yang terkait.</p>
             <div className="mt-5 flex gap-3">
               <button onClick={() => setDeleteConfirmId(null)} className="flex-1 rounded-2xl border border-blue-100 bg-white py-3 text-xs font-black text-slate-600">Batal</button>
-              <button onClick={() => handleDelete(deleteConfirmId)} className="flex-1 rounded-2xl bg-rose-500 py-3 text-xs font-black text-white shadow-lg shadow-rose-100 transition-all hover:bg-rose-600 active:scale-95">Ya, Hapus</button>
+              <button onClick={() => deleteConfirmId !== null && handleDelete(deleteConfirmId)} className="flex-1 rounded-2xl bg-rose-500 py-3 text-xs font-black text-white shadow-lg shadow-rose-100 transition-all hover:bg-rose-600 active:scale-95">Ya, Hapus</button>
             </div>
           </div>
         </div>
       )}
+      </div>
+      <BottomNav />
     </div>
   );
 }

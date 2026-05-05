@@ -9,21 +9,22 @@ import { useAuthGuard } from "@/lib/useAuthGuard";
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
 
+export default function WargaProfilePage() {
   useAuthGuard();
   const loadingCitizens = useAppStore((s) => s.loadingCitizens);
   const fetchCitizens = useAppStore((s) => s.fetchCitizens);
-  useEffect(() => { fetchCitizens(); }, [fetchCitizens]);
+  
+  console.log("HOOK CHECK - WargaProfilePage hooks called");
+  
+  useEffect(() => {
+    if (typeof fetchCitizens === "function") {
+      fetchCitizens();
+    } else {
+      console.error("fetchCitizens is not defined in store");
+    }
+  }, [fetchCitizens]);
 
-  if (loadingCitizens) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-slate-500 font-bold">Memuat data profil...</span>
-          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
-        </div>
-      </div>
-    );
-  }
+  const showLoading = loadingCitizens;
 
   type SecurityActionModal = {
     mode: "confirm" | "result";
@@ -74,10 +75,19 @@ import Notification from "@/components/Notification";
     });
   }, [userProfile.address, userProfile.name, userProfile.phone]);
 
-  const currentCitizen = citizens.find((citizen) => citizen.nik === userProfile.nik) ?? citizens[0];
-  const userLetters = letters.filter((letter) => letter.applicant === (currentCitizen?.name ?? userProfile.name)).slice(0, 3);
-  const userIuran = iuran.filter((item) => item.citizenId === currentCitizen?.id).slice(0, 3);
-  const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
+  const currentCitizen = Array.isArray(citizens)
+    ? citizens.find((citizen) => citizen.nik === userProfile.nik) ?? citizens[0]
+    : null;
+  const userLetters = Array.isArray(letters)
+    ? letters.filter((letter) => letter.applicant === (currentCitizen?.name ?? userProfile.name)).slice(0, 3)
+    : [];
+  const userIuran = Array.isArray(iuran)
+    ? iuran.filter((item) => item.citizenId === currentCitizen?.id).slice(0, 3)
+    : [];
+  const unreadNotifications = Array.isArray(notifications)
+    ? notifications.filter((notification) => !notification.isRead).length
+    : 0;
+  const safeCitizen = currentCitizen ?? {};
 
   const handleLogout = async () => {
     await logout();
@@ -102,13 +112,13 @@ import Notification from "@/components/Notification";
     setNotif(nextValue ? "Fitur keamanan diaktifkan" : "Fitur keamanan dinonaktifkan");
   };
 
-  const executePinChange = () => {
+  const executePinChange = async () => {
     if (pinForm.newPin !== pinForm.confirmPin) {
       setNotif("Konfirmasi PIN baru belum cocok.");
       return;
     }
 
-    const result = changePin(pinForm.currentPin, pinForm.newPin);
+    const result = await changePin(pinForm.currentPin, pinForm.newPin);
     setNotif(result.message);
     setSecurityModal({
       mode: "result",
@@ -199,39 +209,47 @@ import Notification from "@/components/Notification";
           };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden pb-24 animate-in fade-in duration-500">
-      <Notification />
-
-      <div className="p-6">
-        <div className="text-center mb-6">
-          <div className="w-24 h-24 bg-slate-200 rounded-full mx-auto mb-4 overflow-hidden border-4 border-white shadow-lg relative">
-            <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userProfile.name || "warga")}`} alt="profile" fill unoptimized />
-          </div>
-          <h3 className="text-xl font-bold text-slate-800">{userProfile.name || "Nama warga belum tersedia"}</h3>
-          <p className="text-sm text-slate-500">{userProfile.address || "Alamat belum tersedia"}</p>
-          <button onClick={() => setIsEditing(true)} className="mt-4 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold shadow-xl transition-all hover:scale-105 active:scale-95">
-            <PencilLine size={16} /> Edit Profil
-          </button>
+    <>
+      <div style={{ display: showLoading ? 'block' : 'none' }} className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data profil...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
         </div>
+      </div>
 
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-5 mb-5">
-          <h4 className="text-base font-black text-slate-800 mb-4">Informasi Warga</h4>
-          <div className="space-y-3">
-            {[
-              { icon: <UserRound size={16} />, label: "Nama", value: userProfile.name },
-              { icon: <ShieldCheck size={16} />, label: "NIK", value: userProfile.nik },
-              { icon: <MapPin size={16} />, label: "Alamat", value: userProfile.address },
-              { icon: <Phone size={16} />, label: "No HP", value: userProfile.phone },
-            ].map((item) => (
-              <div key={item.label} className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="w-9 h-9 rounded-xl bg-white text-slate-500 flex items-center justify-center shadow-sm">{item.icon}</div>
-                <div>
-                  <p className="text-[11px] uppercase font-bold tracking-widest text-slate-400">{item.label}</p>
-                  <p className="text-sm font-semibold text-slate-700">{item.value || `${item.label} belum tersedia`}</p>
-                </div>
-              </div>
-            ))}
+      <div style={{ display: !showLoading ? 'block' : 'none' }} className="min-h-screen bg-slate-50 font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden pb-24 animate-in fade-in duration-500">
+        <Notification />
+
+        <div className="p-6">
+          <div className="text-center mb-6">
+            <div className="w-24 h-24 bg-slate-200 rounded-full mx-auto mb-4 overflow-hidden border-4 border-white shadow-lg relative">
+              <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userProfile.name || "warga")}`} alt="profile" fill unoptimized />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">{userProfile.name || "Nama warga belum tersedia"}</h3>
+            <p className="text-sm text-slate-500">{userProfile.address || "Alamat belum tersedia"}</p>
+            <button onClick={() => setIsEditing(true)} className="mt-4 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold shadow-xl transition-all hover:scale-105 active:scale-95">
+              <PencilLine size={16} /> Edit Profil
+            </button>
           </div>
+
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-5 mb-5">
+            <h4 className="text-base font-black text-slate-800 mb-4">Informasi Warga</h4>
+            <div className="space-y-3">
+              {[
+                { icon: <UserRound size={16} />, label: "Nama", value: userProfile.name },
+                { icon: <ShieldCheck size={16} />, label: "NIK", value: userProfile.nik },
+                { icon: <MapPin size={16} />, label: "Alamat", value: userProfile.address },
+                { icon: <Phone size={16} />, label: "No HP", value: userProfile.phone },
+              ].map((item) => (
+                <div key={item.label} className="w-full flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="w-9 h-9 rounded-xl bg-white text-slate-500 flex items-center justify-center shadow-sm">{item.icon}</div>
+                  <div>
+                    <p className="text-[11px] uppercase font-bold tracking-widest text-slate-400">{item.label}</p>
+                    <p className="text-sm font-semibold text-slate-700">{item.value || `${item.label} belum tersedia`}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-5 mb-5">
@@ -407,7 +425,7 @@ import Notification from "@/components/Notification";
 
                   return (
                     <div key={item.key} className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm transition-all duration-300 hover:scale-[1.01]">
-                      <div className="flex items-start gap-3">
+                      <div className="w-full flex items-start gap-3">
                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${active ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>
                           {item.icon}
                         </div>
@@ -479,7 +497,7 @@ import Notification from "@/components/Notification";
               </div>
 
               <div className="bg-white rounded-3xl border border-slate-100 p-4 shadow-sm">
-                <div className="flex items-start gap-3 mb-4">
+                <div className="w-full flex items-start gap-3 mb-4">
                   <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
                     <Smartphone size={18} />
                   </div>
@@ -525,5 +543,6 @@ import Notification from "@/components/Notification";
 
       <BottomNav />
     </div>
+    </>
   );
 }

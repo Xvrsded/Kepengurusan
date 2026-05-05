@@ -8,6 +8,8 @@ import {
   User,
   QrCode,
   Bell,
+  Vote,
+  AlertTriangle,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -20,15 +22,24 @@ export default function BottomNav() {
 
   const suratLabel = role === "admin" ? "Data" : "Surat";
 
-  const items = [
-    { key: "home",    href: base,             icon: LayoutDashboard, label: "Home"      },
-    { key: "surat",   href: `${base}/surat`,  icon: FileText,        label: suratLabel  },
-    { key: "iuran",   href: `${base}/iuran`,  icon: Wallet,          label: "Iuran"     },
-    { key: "profile", href: `${base}/profile`, icon: User,           label: "Profil"    },
-  ];
+  const items = role === "admin"
+    ? [
+        { key: "home",    href: base,                  icon: LayoutDashboard, label: "Home"      },
+        { key: "surat",   href: `${base}/surat`,       icon: FileText,        label: "Data"      },
+        { key: "iuran",   href: `${base}/iuran`,       icon: Wallet,          label: "Iuran"     },
+        { key: "voting",  href: `${base}/voting`,      icon: Vote,            label: "Voting"    },
+        { key: "profile", href: `${base}/profile`,     icon: User,           label: "Profil"    },
+      ]
+    : [
+        { key: "home",    href: base,             icon: LayoutDashboard, label: "Home"      },
+        { key: "surat",   href: `${base}/surat`,  icon: FileText,        label: suratLabel  },
+        { key: "iuran",   href: `${base}/iuran`,  icon: Wallet,          label: "Iuran"     },
+        { key: "voting",  href: `${base}/voting`, icon: Vote,            label: "Voting"    },
+        { key: "profile", href: `${base}/profile`, icon: User,           label: "Profil"    },
+      ];
 
-  const [left, right] = [items.slice(0, 2), items.slice(2)];
-  const centerActive = role === "warga" ? pathname === "/warga/notifikasi" : pathname === base;
+  const [left, right] = [items.slice(0, 3), items.slice(3)];
+  const centerActive = role === "warga" ? pathname === "/warga/notifikasi" : pathname === "/admin/panic";
 
   const NavItem = ({ href, icon: Icon, label, delay = 0 }: { href: string; icon: typeof LayoutDashboard; label: string; delay?: number }) => {
     const active = pathname === href;
@@ -50,6 +61,8 @@ export default function BottomNav() {
     );
   };
 
+  console.log("HOOK CHECK - BottomNav hooks added back");
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom-4 fade-in duration-500">
       <div className="mx-auto max-w-md px-3 pb-3">
@@ -69,7 +82,7 @@ export default function BottomNav() {
                     router.push("/warga/notifikasi");
                     return;
                   }
-                  router.push(base);
+                  router.push("/admin/panic");
                 }}
                 className={`relative flex h-16 w-16 items-center justify-center rounded-3xl border-4 border-white/90 text-white shadow-2xl transition-all duration-300 ease-out active:scale-90 ${centerActive ? "bg-linear-to-br from-blue-700 to-cyan-500 shadow-blue-200 scale-105 -translate-y-1" : "bg-linear-to-br from-blue-600 to-cyan-500 shadow-blue-200 hover:scale-105"}`}
               >
@@ -77,11 +90,11 @@ export default function BottomNav() {
                 <div className={`absolute inset-1 rounded-2xl transition-all duration-500 ease-out ${centerActive ? "bg-white/10 scale-110 opacity-100" : "bg-transparent scale-75 opacity-0"}`} />
                 <div className={`absolute inset-x-3 top-2 h-2 rounded-full bg-white/30 blur-sm transition-opacity duration-300 ${centerActive ? "opacity-100" : "opacity-70"}`} />
                 <div className={`relative z-10 transition-transform duration-300 ease-out ${centerActive ? "scale-[1.14] -translate-y-0.5" : "scale-100"}`}>
-                  {role === "warga" ? <Bell size={24} /> : <QrCode size={24} />}
+                  {role === "warga" ? <Bell size={24} /> : <AlertTriangle size={24} />}
                 </div>
               </button>
               <span className={`mt-1.5 text-[10px] font-black transition-colors duration-300 ${centerActive ? "text-blue-600" : "text-slate-400"}`}>
-                {role === "warga" ? "Notif" : "Menu"}
+                {role === "warga" ? "Notif" : "Alert"}
               </span>
               {role === "warga" && unreadCount > 0 ? (
                 <>

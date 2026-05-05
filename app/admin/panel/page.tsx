@@ -40,7 +40,9 @@ import {
 import { useAppStore } from "@/store/useAppStore";
 import Notification from "@/components/Notification";
 import BottomNav from "@/components/BottomNav";
+import Logo from "@/components/ui/Logo";
 
+export default function AdminPanelPage() {
   useAuthGuard();
   const router = useRouter();
   const role = useAppStore((s) => s.role);
@@ -49,18 +51,18 @@ import BottomNav from "@/components/BottomNav";
       router.replace("/warga");
     }
   }, [role, router]);
-  const citizens = useAppStore((s) => s.citizens);
+  const profiles = useAppStore((s) => s.profiles);
   const letters = useAppStore((s) => s.letters);
   const iuran = useAppStore((s) => s.iuran);
   const iuranTypes = useAppStore((s) => s.iuranTypes);
   const iuranPayments = useAppStore((s) => s.iuranPayments);
   const notifications = useAppStore((s) => s.notifications);
-  const loadingCitizens = useAppStore((s) => s.loadingCitizens);
+  const loadingProfiles = useAppStore((s) => s.loadingProfiles);
   const loadingLetters = useAppStore((s) => s.loadingLetters);
   const loadingIuran = useAppStore((s) => s.loadingIuran);
   const loadingIuranPayments = useAppStore((s) => s.loadingIuranPayments);
   const loadingNotifications = useAppStore((s) => s.loadingNotifications);
-  const fetchCitizens = useAppStore((s) => s.fetchCitizens);
+  const fetchProfiles = useAppStore((s) => s.fetchProfiles);
   const fetchLetters = useAppStore((s) => s.fetchLetters);
   const fetchIuran = useAppStore((s) => s.fetchIuran);
   const fetchIuranTypes = useAppStore((s) => s.fetchIuranTypes);
@@ -68,37 +70,25 @@ import BottomNav from "@/components/BottomNav";
   const fetchNotifications = useAppStore((s) => s.fetchNotifications);
   const setNotif = useAppStore((s) => s.setNotif);
   useEffect(() => {
-    fetchCitizens();
+    fetchProfiles();
     fetchLetters();
     fetchIuran();
     fetchIuranTypes();
     fetchIuranPayments();
     fetchNotifications();
-  }, [fetchCitizens, fetchLetters, fetchIuran, fetchIuranTypes, fetchIuranPayments, fetchNotifications]);
+  }, [fetchProfiles, fetchLetters, fetchIuran, fetchIuranTypes, fetchIuranPayments, fetchNotifications]);
 
-  if (loadingCitizens || loadingLetters || loadingIuran || loadingIuranPayments || loadingNotifications) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-slate-500 font-bold">Memuat data panel admin...</span>
-          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  const pendingLetters = useMemo(() => letters.filter((l) => l.status === "Proses"), [letters]);
-  const completedLetters = useMemo(() => letters.filter((l) => l.status === "Selesai"), [letters]);
+  const pendingLetters = useMemo(() => letters.filter((l) => l.status === "pending"), [letters]);
+  const completedLetters = useMemo(() => letters.filter((l) => l.status === "approved"), [letters]);
   const paidIuran = useMemo(() => iuran.filter((i) => i.status === "Lunas"), [iuran]);
   const pendingIuran = useMemo(() => iuran.filter((i) => i.status === "Pending"), [iuran]);
   const unreadNotifications = useMemo(() => notifications.filter((n) => !n.isRead).length, [notifications]);
   const totalCollected = useMemo(() => paidIuran.reduce((sum, i) => sum + i.amount, 0), [paidIuran]);
   const collectionRate = iuran.length === 0 ? 0 : Math.round((paidIuran.length / iuran.length) * 100);
   const completionRate = letters.length === 0 ? 0 : Math.round((completedLetters.length / letters.length) * 100);
-
   const newTotalCollected = useMemo(() => iuranPayments.filter((p) => p.status === "Lunas").reduce((sum, p) => sum + p.amount, 0), [iuranPayments]);
   const newPaidCount = iuranPayments.filter((p) => p.status === "Lunas").length;
-  const newPendingCount = iuranPayments.filter((p) => p.status === "Belum").length;
+  const newPendingCount = iuranPayments.filter((p) => p.status === "Pending").length;
   const newCollectionRate = iuranPayments.length ? Math.round((newPaidCount / iuranPayments.length) * 100) : 0;
 
   const perTypeStats = useMemo(() => {
@@ -106,8 +96,7 @@ import BottomNav from "@/components/BottomNav";
       const payments = iuranPayments.filter((p) => p.iuranTypeId === t.id);
       const paid = payments.filter((p) => p.status === "Lunas").length;
       const total = payments.length;
-      const collected = payments.filter((p) => p.status === "Lunas").reduce((s, p) => s + p.amount, 0);
-      return { ...t, paid, total, collected, rate: total ? Math.round((paid / total) * 100) : 0 };
+      return { ...t, paid, total, hasPayments: payments.length > 0 };
     });
   }, [iuranTypes, iuranPayments]);
 
@@ -163,10 +152,10 @@ import BottomNav from "@/components/BottomNav";
     return [...letters].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
   }, [letters]);
 
-  const topPendingCitizens = useMemo(() => {
+  const topPendingProfiles = useMemo(() => {
     const counts = iuran.filter((i) => i.status === "Pending").reduce<Record<number, number>>((acc, i) => { acc[i.citizenId] = (acc[i.citizenId] ?? 0) + 1; return acc; }, {});
-    return Object.entries(counts).map(([id, count]) => ({ citizen: citizens.find((c) => c.id === Number(id)), count })).filter((x) => x.citizen).sort((a, b) => b.count - a.count).slice(0, 5);
-  }, [iuran, citizens]);
+    return Object.entries(counts).map(([id, count]) => ({ profile: profiles.find((c) => c.id === String(id)), count })).filter((x) => x.profile).sort((a, b) => b.count - a.count).slice(0, 5);
+  }, [iuran, profiles]);
 
   const latestNotifications = useMemo(() => {
     return [...notifications].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
@@ -174,9 +163,9 @@ import BottomNav from "@/components/BottomNav";
 
   const statusDistribution = useMemo(() => {
     return Object.entries(
-      citizens.reduce<Record<string, number>>((acc, c) => { acc[c.status] = (acc[c.status] ?? 0) + 1; return acc; }, {})
+      profiles.reduce<Record<string, number>>((acc, c) => { acc[c.status] = (acc[c.status] ?? 0) + 1; return acc; }, {})
     ).sort((a, b) => b[1] - a[1]);
-  }, [citizens]);
+  }, [profiles]);
 
   const letterVolumeByType = useMemo(() => {
     return Object.entries(
@@ -184,10 +173,10 @@ import BottomNav from "@/components/BottomNav";
     ).sort((a, b) => b[1] - a[1]);
   }, [letters]);
 
-  const topPayingCitizens = useMemo(() => {
+  const topPayingProfiles = useMemo(() => {
     const totals = iuran.filter((i) => i.status === "Lunas").reduce<Record<number, number>>((acc, i) => { acc[i.citizenId] = (acc[i.citizenId] ?? 0) + i.amount; return acc; }, {});
-    return Object.entries(totals).map(([id, amount]) => ({ citizen: citizens.find((c) => c.id === Number(id)), amount })).filter((x) => x.citizen).sort((a, b) => b.amount - a.amount).slice(0, 5);
-  }, [iuran, citizens]);
+    return Object.entries(totals).map(([id, amount]) => ({ profile: profiles.find((c) => c.id === String(id)), amount })).filter((x) => x.profile).sort((a, b) => b.amount - a.amount).slice(0, 5);
+  }, [iuran, profiles]);
 
   const pendingIuranByMonth = useMemo(() => {
     return Object.entries(
@@ -205,10 +194,10 @@ import BottomNav from "@/components/BottomNav";
     }).sort((a, b) => b.month.localeCompare(a.month)).slice(0, 6);
   }, [iuran]);
 
-  const averageIuranPerCitizen = useMemo(() => {
-    if (citizens.length === 0) return 0;
-    return Math.round(totalCollected / citizens.length);
-  }, [totalCollected, citizens.length]);
+  const averageIuranPerProfile = useMemo(() => {
+    if (profiles.length === 0) return 0;
+    return Math.round(totalCollected / profiles.length);
+  }, [totalCollected, profiles.length]);
 
   const notificationStats = useMemo(() => {
     const unread = notifications.filter((n) => !n.isRead).length;
@@ -251,13 +240,13 @@ import BottomNav from "@/components/BottomNav";
 
   const addressDistribution = useMemo(() => {
     return Object.entries(
-      citizens.reduce<Record<string, number>>((acc, c) => {
+      profiles.reduce<Record<string, number>>((acc, c) => {
         const prefix = c.address.split(" ")[0] || "Lainnya";
         acc[prefix] = (acc[prefix] ?? 0) + 1;
         return acc;
       }, {})
     ).sort((a, b) => b[1] - a[1]);
-  }, [citizens]);
+  }, [profiles]);
 
   const recentIuran = useMemo(() => {
     return [...iuran]
@@ -276,11 +265,11 @@ import BottomNav from "@/components/BottomNav";
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredCitizens = useMemo(() => {
-    if (!searchQuery.trim()) return citizens;
+  const filteredProfiles = useMemo(() => {
+    if (!searchQuery.trim()) return profiles;
     const q = searchQuery.toLowerCase();
-    return citizens.filter((c) => c.name.toLowerCase().includes(q) || c.nik.includes(q) || c.address.toLowerCase().includes(q));
-  }, [citizens, searchQuery]);
+    return profiles.filter((c) => c.name.toLowerCase().includes(q) || c.nik.includes(q) || c.address.toLowerCase().includes(q));
+  }, [profiles, searchQuery]);
 
   const filteredLetters = useMemo(() => {
     if (!searchQuery.trim()) return letters;
@@ -295,7 +284,7 @@ import BottomNav from "@/components/BottomNav";
   }, [iuran, searchQuery]);
 
   const overviewCards = [
-    { title: "Warga Aktif", value: citizens.length, subtitle: "Penghuni terdaftar", icon: Users },
+    { title: "Warga Aktif", value: profiles.length, subtitle: "Penghuni terdaftar", icon: Users },
     { title: "Surat Selesai", value: completedLetters.length, subtitle: `${completionRate}% penyelesaian`, icon: CheckCircle2 },
     { title: "Dana Masuk", value: `Rp ${(totalCollected / 1000).toFixed(0)}rb`, subtitle: "Akumulasi iuran lunas", icon: Wallet },
     { title: "Pending", value: pendingLetters.length + pendingIuran.length, subtitle: "Butuh tindakan", icon: CircleAlert },
@@ -323,10 +312,18 @@ import BottomNav from "@/components/BottomNav";
 
   const showSearch = activeTab === "warga" || activeTab === "surat" || activeTab === "iuran";
 
+  const isLoading = loadingProfiles || loadingLetters || loadingIuran || loadingIuranPayments || loadingNotifications;
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans relative overflow-x-hidden animate-in fade-in duration-500">
       <Notification />
-
+      <div style={{ display: isLoading ? 'block' : 'none' }} className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data panel admin...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+      <div style={{ display: !isLoading ? 'block' : 'none' }}>
       {/* Desktop Sidebar */}
       <div
         className={`hidden lg:flex fixed inset-y-0 left-0 z-30 flex-col border-r border-blue-100/80 bg-white/90 backdrop-blur-xl shadow-[20px_0_60px_rgba(59,130,246,0.08)] transition-all duration-300 ease-out ${sidebarOpen ? "w-72" : "w-20"}`}
@@ -348,6 +345,9 @@ import BottomNav from "@/components/BottomNav";
           <div className={`rounded-4xl bg-linear-to-br from-cyan-500 via-blue-600 to-blue-700 text-white shadow-xl shadow-blue-200/50 transition-all duration-300 ${sidebarOpen ? "p-5" : "p-3"}`}>
             {sidebarOpen ? (
               <>
+                <div className="flex justify-center mb-3">
+                  <Logo size="medium" />
+                </div>
                 <div className="inline-flex items-center rounded-full border border-white/20 bg-white/14 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
                   Management Panel
                 </div>
@@ -356,9 +356,7 @@ import BottomNav from "@/components/BottomNav";
               </>
             ) : (
               <div className="flex justify-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/14">
-                  <LayoutDashboard size={18} />
-                </div>
+                <Logo size="small" />
               </div>
             )}
           </div>
@@ -401,12 +399,15 @@ import BottomNav from "@/components/BottomNav";
           <div className="absolute inset-0 bg-linear-to-br from-white/8 via-transparent to-blue-900/10" />
           <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-6 lg:pt-8 lg:pb-8">
             <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => router.push("/admin")}
-                className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/14 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
-              >
-                <ArrowLeft size={16} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push("/admin")}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/20 bg-white/14 text-white shadow-lg backdrop-blur-sm transition-all hover:scale-105 active:scale-95"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+                <Logo size="small" />
+              </div>
               <div className="text-right">
                 <div className="inline-flex items-center rounded-full border border-white/20 bg-white/14 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
                   Admin Panel
@@ -507,7 +508,7 @@ import BottomNav from "@/components/BottomNav";
 
               {/* Monthly Trends */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-5">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-4">Tren Surat per Bulan</p>
                   {monthlyLetterCounts.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-4">Belum ada data</p>
@@ -525,7 +526,7 @@ import BottomNav from "@/components/BottomNav";
                     </div>
                   )}
                 </div>
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-5">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest mb-4">Tren Iuran per Bulan (Rp)</p>
                   {monthlyIuranAmounts.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-4">Belum ada data</p>
@@ -547,14 +548,14 @@ import BottomNav from "@/components/BottomNav";
 
               {/* Activity + Notifications + Pending */}
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 overflow-hidden">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-blue-100/70"><h3 className="font-black text-slate-900 text-sm lg:text-base">Aktivitas Terbaru</h3></div>
                   <div className="p-4 space-y-3">
                     {recentLetters.length === 0 ? (
                       <p className="text-xs text-slate-600 text-center py-4">Belum ada aktivitas</p>
                     ) : (
                       recentLetters.map((letter) => (
-                        <div key={letter.id} className="flex items-start gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3">
+                        <div key={letter.id} className="w-full flex items-start gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3">
                           <div className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${letter.status === "Selesai" ? "bg-blue-500" : "bg-cyan-400"}`} />
                           <div className="min-w-0">
                             <p className="text-sm font-black text-slate-800 truncate">{letter.type}</p>
@@ -567,7 +568,7 @@ import BottomNav from "@/components/BottomNav";
                   </div>
                 </div>
 
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 overflow-hidden">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-blue-100/70 flex items-center justify-between">
                     <h3 className="font-black text-slate-900 text-sm lg:text-base">Notifikasi</h3>
                     {unreadNotifications > 0 && <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">{unreadNotifications}</span>}
@@ -577,7 +578,7 @@ import BottomNav from "@/components/BottomNav";
                       <p className="text-xs text-slate-600 text-center py-4">Tidak ada notifikasi</p>
                     ) : (
                       latestNotifications.map((notif) => (
-                        <div key={notif.id} className={`flex items-start gap-3 rounded-2xl border px-3 py-3 ${notif.isRead ? "border-blue-50 bg-white/50" : "border-blue-100 bg-blue-50/60"}`}>
+                        <div key={notif.id} className={`w-full flex items-start gap-3 rounded-2xl border px-3 py-3 ${notif.isRead ? "border-blue-50 bg-white/50" : "border-blue-100 bg-blue-50/60"}`}>
                           <div className={`shrink-0 w-2 h-2 rounded-full mt-1.5 ${notif.isRead ? "bg-slate-300" : "bg-blue-500"}`} />
                           <div className="min-w-0">
                             <p className="text-sm font-black text-slate-800">{notif.title}</p>
@@ -589,17 +590,17 @@ import BottomNav from "@/components/BottomNav";
                   </div>
                 </div>
 
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 overflow-hidden">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-blue-100/70"><h3 className="font-black text-slate-900 text-sm lg:text-base">Warga dengan Tagihan Pending</h3></div>
                   <div className="p-4 space-y-3">
-                    {topPendingCitizens.length === 0 ? (
+                    {topPendingProfiles.length === 0 ? (
                       <p className="text-xs text-slate-600 text-center py-4">Tidak ada tagihan pending</p>
                     ) : (
-                      topPendingCitizens.map(({ citizen, count }) => (
-                        <div key={citizen!.id} className="flex items-center justify-between rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3">
+                      topPendingProfiles.map(({ profile, count }) => (
+                        <div key={profile!.id} className="flex items-center justify-between rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3">
                           <div className="min-w-0">
-                            <p className="text-sm font-black text-slate-800 truncate">{citizen!.name}</p>
-                            <p className="text-xs text-slate-600">{citizen!.phone}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{profile!.name}</p>
+                            <p className="text-xs text-slate-600">{profile!.phone}</p>
                           </div>
                           <span className="shrink-0 bg-rose-100 text-rose-600 text-[10px] font-black px-2.5 py-1 rounded-full">{count} pending</span>
                         </div>
@@ -617,7 +618,11 @@ import BottomNav from "@/components/BottomNav";
                 </div>
                 <div className="p-5 grid gap-3 lg:grid-cols-3">
                   {quickActions.map(({ title, description, icon: Icon, onClick }) => (
-                    <button key={title} onClick={onClick} className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 text-left shadow-sm shadow-blue-50/60 transition-all hover:scale-[1.01] active:scale-95">
+                    <button
+                      key={title}
+                      onClick={onClick}
+                      className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 text-left shadow-sm shadow-blue-50/60 transition-all hover:scale-[1.01] active:scale-95"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100 flex items-center justify-center shrink-0"><Icon size={17} /></div>
                         <div className="min-w-0"><p className="text-sm font-black text-slate-800">{title}</p><p className="text-xs text-slate-600 mt-0.5">{description}</p></div>
@@ -629,22 +634,22 @@ import BottomNav from "@/components/BottomNav";
 
               {/* Deep Analytics */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 p-5 shadow-sm">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-5">
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Total Surat</p>
                   <p className="mt-2 text-3xl font-black text-slate-900">{letters.length}</p>
                   <p className="mt-1 text-xs text-slate-600">{completedLetters.length} selesai &middot; {pendingLetters.length} proses</p>
                 </div>
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 p-5 shadow-sm">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-5">
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Total Iuran</p>
                   <p className="mt-2 text-3xl font-black text-slate-900">{iuran.length}</p>
                   <p className="mt-1 text-xs text-slate-600">{paidIuran.length} lunas &middot; {pendingIuran.length} pending</p>
                 </div>
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 p-5 shadow-sm">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-5">
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Dana Terkumpul</p>
                   <p className="mt-2 text-3xl font-black text-slate-900">Rp {(totalCollected / 1000).toFixed(0)}rb</p>
                   <p className="mt-1 text-xs text-slate-600">Dari {paidIuran.length} pembayaran</p>
                 </div>
-                <div className="rounded-4xl border border-blue-100/80 bg-white/80 p-5 shadow-sm">
+                <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-5">
                   <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Efisiensi</p>
                   <p className="mt-2 text-3xl font-black text-slate-900">{Math.round((completionRate + collectionRate) / 2)}%</p>
                   <p className="mt-1 text-xs text-slate-600">Rata-rata operasional</p>
@@ -670,9 +675,9 @@ import BottomNav from "@/components/BottomNav";
               {/* Summary Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { label: "Total Warga", value: citizens.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-                  { label: "Status Tetap", value: citizens.filter((c) => c.status === "Tetap").length, icon: UserCheck, color: "text-blue-600", bg: "bg-blue-50" },
-                  { label: "Status Kontrak", value: citizens.filter((c) => c.status === "Kontrak").length, icon: Clock3, color: "text-cyan-600", bg: "bg-cyan-50" },
+                  { label: "Total Warga", value: profiles.length, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Status Tetap", value: profiles.filter((c) => c.status === "Tetap").length, icon: UserCheck, color: "text-blue-600", bg: "bg-blue-50" },
+                  { label: "Status Kontrak", value: profiles.filter((c) => c.status === "Kontrak").length, icon: Clock3, color: "text-cyan-600", bg: "bg-cyan-50" },
                   { label: "Area/Blok", value: addressDistribution.length, icon: MapPin, color: "text-blue-600", bg: "bg-blue-50" },
                 ].map((card, i) => (
                   <div key={card.label} className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-4 transition-all hover:scale-[1.02] hover:shadow-md" style={{ animationDelay: `${i * 60}ms` }}>
@@ -693,14 +698,14 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><PieChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Kependudukan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Kependudukan</p>
                   </div>
                   {statusDistribution.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
                   ) : (
                     <div className="space-y-4">
                       {statusDistribution.map(([status, count], i) => {
-                        const total = citizens.length;
+                        const total = profiles.length;
                         const pct = total ? Math.round((count / total) * 100) : 0;
                         const barColors = ["bg-blue-500", "bg-cyan-400"];
                         return (
@@ -731,7 +736,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><Home size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Area / Blok</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Area / Blok</p>
                   </div>
                   {addressDistribution.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
@@ -739,8 +744,6 @@ import BottomNav from "@/components/BottomNav";
                     <div className="space-y-4">
                       {addressDistribution.map(([area, count], i) => {
                         const max = Math.max(...addressDistribution.map((c) => c[1]));
-                        const pct = max ? Math.round((count / max) * 100) : 0;
-                        const colors = ["bg-blue-500", "bg-cyan-400", "bg-sky-400", "bg-indigo-400", "bg-blue-300", "bg-cyan-300"];
                         return (
                           <div key={area}>
                             <div className="flex justify-between text-xs mb-1.5">
@@ -748,7 +751,7 @@ import BottomNav from "@/components/BottomNav";
                               <span className="font-black text-blue-600">{count}</span>
                             </div>
                             <div className="h-4 rounded-xl bg-blue-100 overflow-hidden">
-                              <div className={`h-full rounded-xl ${colors[i % colors.length]} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                              <div className={`h-full rounded-xl ${i === 0 ? "bg-blue-500" : "bg-cyan-400"} transition-all duration-700`} style={{ width: `${max ? (count / max) * 100 : 0}%` }} />
                             </div>
                           </div>
                         );
@@ -762,7 +765,7 @@ import BottomNav from "@/components/BottomNav";
               <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
                 <div className="px-5 py-4 border-b border-blue-100/70 flex items-center justify-between">
                   <h3 className="font-black text-slate-900 text-sm lg:text-base">Tabel Data Warga</h3>
-                  <span className="text-xs font-black text-blue-500 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">{filteredCitizens.length} data</span>
+                  <span className="text-xs font-black text-blue-500 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">{filteredProfiles.length} data</span>
                 </div>
                 <div className="hidden md:block overflow-x-auto">
                   <table className="min-w-full text-left bg-white/60">
@@ -776,15 +779,15 @@ import BottomNav from "@/components/BottomNav";
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCitizens.map((citizen, index) => (
-                        <tr key={citizen.id} className={`border-b border-blue-50 transition-colors hover:bg-blue-50/30 ${index % 2 === 0 ? "bg-white/50" : "bg-cyan-50/20"}`}>
-                          <td className="px-5 py-4 text-sm font-black text-slate-800">{citizen.name}</td>
-                          <td className="px-5 py-4 text-xs text-slate-600">{citizen.nik}</td>
-                          <td className="px-5 py-4 text-xs text-slate-600">{citizen.address}</td>
-                          <td className="px-5 py-4 text-xs text-slate-600">{citizen.phone}</td>
+                      {filteredProfiles.map((citizenId, index) => (
+                        <tr key={citizenId.id} className={`border-b border-blue-50 transition-colors hover:bg-blue-50/30 ${index % 2 === 0 ? "bg-white/50" : "bg-cyan-50/20"}`}>
+                          <td className="px-5 py-4 text-sm font-black text-slate-800">{citizenId.name}</td>
+                          <td className="px-5 py-4 text-xs text-slate-600">{citizenId.nik}</td>
+                          <td className="px-5 py-4 text-xs text-slate-600">{citizenId.address}</td>
+                          <td className="px-5 py-4 text-xs text-slate-600">{citizenId.phone}</td>
                           <td className="px-5 py-4">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${citizen.status === "Tetap" ? "bg-blue-100 text-blue-600 border border-blue-100" : "bg-cyan-100 text-cyan-600 border border-cyan-100"}`}>
-                              {citizen.status}
+                            <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${citizenId.status === "Tetap" ? "bg-blue-100 text-blue-600 border border-blue-100" : "bg-cyan-100 text-cyan-600 border border-cyan-100"}`}>
+                              {citizenId.status}
                             </span>
                           </td>
                         </tr>
@@ -793,19 +796,19 @@ import BottomNav from "@/components/BottomNav";
                   </table>
                 </div>
                 <div className="md:hidden grid gap-3 p-4">
-                  {filteredCitizens.map((citizen) => (
-                    <div key={citizen.id} className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 shadow-sm shadow-blue-50/60 transition-all hover:shadow-md">
+                  {filteredProfiles.map((citizenId) => (
+                    <div key={citizenId.id} className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 shadow-sm shadow-blue-50/60 transition-all hover:shadow-md">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-black text-slate-800">{citizen.name}</p>
-                          <p className="mt-1 text-xs text-slate-600">{citizen.nik}</p>
+                          <p className="text-sm font-black text-slate-800">{citizenId.name}</p>
+                          <p className="mt-1 text-xs text-slate-600">{citizenId.nik}</p>
                         </div>
-                        <span className={`shrink-0 inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${citizen.status === "Tetap" ? "bg-blue-100 text-blue-600 border border-blue-100" : "bg-cyan-100 text-cyan-600 border border-cyan-100"}`}>
-                          {citizen.status}
+                        <span className={`shrink-0 inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${citizenId.status === "Tetap" ? "bg-blue-100 text-blue-600 border border-blue-100" : "bg-cyan-100 text-cyan-600 border border-cyan-100"}`}>
+                          {citizenId.status}
                         </span>
                       </div>
-                      <p className="mt-2 text-xs text-slate-600">{citizen.address}</p>
-                      <p className="mt-1 text-xs text-blue-500">{citizen.phone}</p>
+                      <p className="mt-2 text-xs text-slate-600">{citizenId.address}</p>
+                      <p className="mt-1 text-xs text-blue-500">{citizenId.phone}</p>
                     </div>
                   ))}
                 </div>
@@ -853,7 +856,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><BarChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Jenis Surat</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Jenis Surat</p>
                   </div>
                   {letterVolumeByType.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
@@ -883,7 +886,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><TrendingUp size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Tren Bulanan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Tren Bulanan</p>
                   </div>
                   {monthlyLetterTrends.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
@@ -897,12 +900,12 @@ import BottomNav from "@/components/BottomNav";
                             <div key={month} className="flex-1 flex flex-col items-center gap-2 group">
                               <div className="relative w-full flex items-end h-32">
                                 <div
-                                  className="w-full bg-linear-to-t from-blue-500 to-cyan-400 rounded-t-lg transition-all duration-700 opacity-90 group-hover:opacity-100"
+                                  className="w-full bg-linear-to-t from-blue-500 to-cyan-400 rounded-t-lg transition-all duration-700"
                                   style={{ height: `${h}%` }}
                                 />
                               </div>
-                              <span className="text-[10px] font-black text-slate-600 text-center leading-tight">{month}</span>
                               <span className="text-[10px] font-black text-blue-600">{count}</span>
+                              <span className="text-[10px] font-black text-slate-600 text-center leading-tight">{month}</span>
                             </div>
                           );
                         })}
@@ -923,7 +926,7 @@ import BottomNav from "@/components/BottomNav";
                     <p className="text-xs text-slate-600 text-center py-4 col-span-full">Belum ada aktivitas</p>
                   ) : (
                     recentLetters.map((letter, i) => (
-                      <div key={letter.id} className="flex items-start gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                      <div key={letter.id} className="w-full flex items-start gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                         <div className={`shrink-0 w-2.5 h-2.5 rounded-full mt-1.5 ${letter.status === "Selesai" ? "bg-blue-500" : "bg-cyan-400"}`} />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-black text-slate-800 truncate">{letter.type}</p>
@@ -990,7 +993,6 @@ import BottomNav from "@/components/BottomNav";
           )}
 
           {/* IURAN TAB */}
-          {/* IURAN TAB */}
           {activeTab === "iuran" && (
             <div className="animate-in fade-in duration-500 space-y-5">
               <div className="flex items-start justify-between gap-4">
@@ -1053,7 +1055,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><PieChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Iuran</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Iuran</p>
                   </div>
                   {iuranPayments.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
                     <div className="space-y-4">
@@ -1061,8 +1063,13 @@ import BottomNav from "@/components/BottomNav";
                         const pct = iuranPayments.length ? Math.round((item.count / iuranPayments.length) * 100) : 0;
                         return (
                           <div key={item.label}>
-                            <div className="flex justify-between text-xs mb-1.5"><span className="font-black text-slate-800">{item.label}</span><span className={`font-black ${item.text}`}>{item.count} ({pct}%)</span></div>
-                            <div className="h-4 rounded-xl bg-blue-100 overflow-hidden"><div className={`h-full rounded-xl ${item.color} transition-all duration-700`} style={{ width: `${pct}%` }} /></div>
+                            <div className="flex justify-between text-xs mb-1.5">
+                              <span className="font-black text-slate-800">{item.label}</span>
+                              <span className={`font-black ${item.text}`}>{item.count} ({pct}%)</span>
+                            </div>
+                            <div className="h-4 rounded-xl bg-blue-100 overflow-hidden">
+                              <div className={`h-full rounded-xl ${item.color} transition-all duration-700`} style={{ width: `${pct}%` }} />
+                            </div>
                           </div>
                         );
                       })}
@@ -1079,7 +1086,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><BarChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Pendapatan per Bulan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Pendapatan per Bulan</p>
                   </div>
                   {monthlyRevenueTrends.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
                     <div className="flex items-end gap-3 h-48 px-2">
@@ -1104,7 +1111,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><Activity size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Efisiensi Koleksi per Bulan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Efisiensi Koleksi per Bulan</p>
                   </div>
                   {collectionEfficiencyByMonth.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
                     <div className="space-y-3">
@@ -1125,16 +1132,16 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><Award size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Top 5 Pembayar</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Top 5 Pembayar</p>
                   </div>
-                  {topPayingCitizens.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
+                  {topPayingProfiles.length === 0 ? (<p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>) : (
                     <div className="space-y-3">
-                      {topPayingCitizens.map((item, i) => (
-                        <div key={item.citizen!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-2.5 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                      {topPayingProfiles.map((item, i) => (
+                        <div key={item.citizenId!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-2.5 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                           <div className="shrink-0 w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-black text-blue-600">{i + 1}</div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-800 truncate">{item.citizen!.name}</p>
-                            <p className="text-[10px] text-slate-600">{item.citizen!.address}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{item.citizenId!.name}</p>
+                            <p className="text-xs text-slate-600">{item.citizenId!.phone}</p>
                           </div>
                           <span className="shrink-0 text-xs font-black text-blue-600">Rp {item.amount.toLocaleString("id-ID")}</span>
                         </div>
@@ -1160,11 +1167,11 @@ import BottomNav from "@/components/BottomNav";
                     </thead>
                     <tbody>
                       {filteredIuran.map((item, index) => {
-                        const citizenName = citizens.find((c) => c.id === item.citizenId)?.name ?? `Warga #${item.citizenId}`;
+                        const citizenIdName = profiles.find((c) => c.id === item.citizenId)?.name ?? `Warga #${item.citizenId}`;
                         return (
                           <tr key={item.id} className={`border-b border-blue-50 transition-colors hover:bg-blue-50/30 ${index % 2 === 0 ? "bg-white/50" : "bg-cyan-50/20"}`}>
                             <td className="px-5 py-4 text-sm font-black text-slate-800">{item.month}</td>
-                            <td className="px-5 py-4 text-xs text-slate-600">{citizenName}</td>
+                            <td className="px-5 py-4 text-xs text-slate-600">{citizenIdName}</td>
                             <td className="px-5 py-4 text-xs text-slate-600">Rp {item.amount.toLocaleString("id-ID")}</td>
                             <td className="px-5 py-4">
                               <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${item.status === "Lunas" ? "bg-blue-100 text-blue-600 border border-blue-100" : "bg-rose-100 text-rose-600 border border-rose-100"}`}>
@@ -1179,13 +1186,13 @@ import BottomNav from "@/components/BottomNav";
                 </div>
                 <div className="md:hidden grid gap-3 p-4">
                   {filteredIuran.map((item) => {
-                    const citizenName = citizens.find((c) => c.id === item.citizenId)?.name ?? `Warga #${item.citizenId}`;
+                    const citizenIdName = profiles.find((c) => c.id === item.citizenId)?.name ?? `Warga #${item.citizenId}`;
                     return (
                       <div key={item.id} className="rounded-3xl border border-blue-100/70 bg-white/85 px-4 py-4 shadow-sm shadow-blue-50/60 transition-all hover:shadow-md">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-sm font-black text-slate-800">{item.month}</p>
-                            <p className="mt-1 text-xs text-slate-600">{citizenName}</p>
+                            <p className="mt-1 text-xs text-slate-600">{citizenIdName}</p>
                           </div>
                           <span className={`shrink-0 inline-flex rounded-full px-3 py-1 text-[10px] font-black uppercase ${item.status === "Lunas" ? "bg-blue-100 text-blue-600 border border-blue-100" : "bg-rose-100 text-rose-600 border border-rose-100"}`}>
                             {item.status}
@@ -1216,7 +1223,7 @@ import BottomNav from "@/components/BottomNav";
               {/* Summary Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                 {[
-                  { label: "Total Warga", value: citizens.length, icon: Users, subtitle: "Terdaftar", color: "text-blue-600" },
+                  { label: "Total Warga", value: profiles.length, icon: Users, subtitle: "Terdaftar", color: "text-blue-600" },
                   { label: "Total Surat", value: letters.length, icon: FileText, subtitle: `${completionRate}% selesai`, color: "text-cyan-600" },
                   { label: "Dana Masuk", value: `Rp ${(totalCollected / 1000).toFixed(0)}rb`, icon: Wallet, subtitle: "Akumulasi", color: "text-blue-600" },
                   { label: "Efisiensi", value: `${Math.round((completionRate + collectionRate) / 2)}%`, icon: Activity, subtitle: "Rata-rata", color: "text-cyan-600" },
@@ -1224,8 +1231,8 @@ import BottomNav from "@/components/BottomNav";
                   { label: "Notifikasi", value: notificationStats.unread, icon: Bell, subtitle: "Belum dibaca", color: "text-amber-500" },
                 ].map((card, i) => (
                   <div key={card.label} className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm shadow-blue-50/60 p-4 transition-all hover:scale-[1.02] hover:shadow-md" style={{ animationDelay: `${i * 60}ms` }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`w-8 h-8 rounded-2xl ${card.bg} border border-blue-100 flex items-center justify-center ${card.color}`}>
                         <card.icon size={15} />
                       </div>
                       <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">{card.label}</p>
@@ -1240,7 +1247,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><PieChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Surat</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Surat</p>
                   </div>
                   <div className="space-y-4">
                     {letterStatusCounts.map((item) => {
@@ -1271,7 +1278,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><CreditCard size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Iuran</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Iuran</p>
                   </div>
                   <div className="space-y-4">
                     {iuranStatusCounts.map((item) => {
@@ -1306,7 +1313,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><BarChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Grafik Volume Surat Bulanan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Grafik Volume Surat Bulanan</p>
                   </div>
                   {monthlyLetterTrends.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data surat</p>
@@ -1333,7 +1340,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><PieChart size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Grafik Proporsi Status</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Grafik Proporsi Status</p>
                   </div>
                   {letters.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
@@ -1383,7 +1390,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><CalendarDays size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Tren Surat Bulanan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Tren Surat Bulanan</p>
                   </div>
                   {monthlyLetterTrends.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data surat</p>
@@ -1409,7 +1416,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><TrendingUp size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Tren Pendapatan Bulanan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Tren Pendapatan Bulanan</p>
                   </div>
                   {monthlyRevenueTrends.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data iuran</p>
@@ -1438,7 +1445,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><FileText size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Volume per Jenis Surat</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Volume per Jenis Surat</p>
                   </div>
                   {letterVolumeByType.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
@@ -1463,7 +1470,7 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><MapPin size={15} /></div>
-                    <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Kependudukan</p>
+                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Distribusi Status Kependudukan</p>
                   </div>
                   {statusDistribution.length === 0 ? (
                     <p className="text-xs text-slate-600 text-center py-8">Belum ada data warga</p>
@@ -1491,18 +1498,18 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
                   <div className="px-5 py-4 border-b border-blue-100/70 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><Award size={15} /></div>
-                    <h3 className="font-black text-slate-900 text-sm lg:text-base">Top Pembayar Iuran</h3>
+                  <h3 className="font-black text-slate-900 text-sm lg:text-base">Top Pembayar Iuran</h3>
                   </div>
                   <div className="p-4 space-y-3">
-                    {topPayingCitizens.length === 0 ? (
+                    {topPayingProfiles.length === 0 ? (
                       <p className="text-xs text-slate-600 text-center py-4">Belum ada data pembayaran</p>
                     ) : (
-                      topPayingCitizens.map(({ citizen, amount }, i) => (
-                        <div key={citizen!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                      topPayingProfiles.map(({ citizenId, amount }, i) => (
+                        <div key={citizenId!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                           <div className="w-7 h-7 rounded-full bg-linear-to-br from-blue-500 to-cyan-400 text-white flex items-center justify-center text-[10px] font-black shrink-0">{i + 1}</div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-800 truncate">{citizen!.name}</p>
-                            <p className="text-xs text-slate-600">{citizen!.phone}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{citizenId!.name}</p>
+                            <p className="text-xs text-slate-600">{citizenId!.phone}</p>
                           </div>
                           <span className="shrink-0 text-xs font-black text-blue-600">Rp {amount.toLocaleString("id-ID")}</span>
                         </div>
@@ -1514,18 +1521,18 @@ import BottomNav from "@/components/BottomNav";
                 <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm overflow-hidden transition-all hover:shadow-md">
                   <div className="px-5 py-4 border-b border-blue-100/70 flex items-center gap-2">
                     <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><AlertTriangle size={15} /></div>
-                    <h3 className="font-black text-slate-900 text-sm lg:text-base">Warga dengan Tunggakan Terbanyak</h3>
+                  <h3 className="font-black text-slate-900 text-sm lg:text-base">Warga dengan Tunggakan Terbanyak</h3>
                   </div>
                   <div className="p-4 space-y-3">
-                    {topPendingCitizens.length === 0 ? (
+                    {topPendingProfiles.length === 0 ? (
                       <p className="text-xs text-slate-600 text-center py-4">Tidak ada tunggakan</p>
                     ) : (
-                      topPendingCitizens.map(({ citizen, count }, i) => (
-                        <div key={citizen!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
+                      topPendingProfiles.map(({ citizenId, count }, i) => (
+                        <div key={citizenId!.id} className="flex items-center gap-3 rounded-2xl border border-blue-100/60 bg-blue-50/40 px-3 py-3 transition-all hover:bg-blue-50/70" style={{ animationDelay: `${i * 80}ms` }}>
                           <div className="w-7 h-7 rounded-full bg-rose-400 text-white flex items-center justify-center text-[10px] font-black shrink-0">{i + 1}</div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-black text-slate-800 truncate">{citizen!.name}</p>
-                            <p className="text-xs text-slate-600">{citizen!.phone}</p>
+                            <p className="text-sm font-black text-slate-800 truncate">{citizenId!.name}</p>
+                            <p className="text-xs text-slate-600">{citizenId!.phone}</p>
                           </div>
                           <span className="shrink-0 bg-rose-100 text-rose-600 text-[10px] font-black px-2.5 py-1 rounded-full">{count} pending</span>
                         </div>
@@ -1539,7 +1546,7 @@ import BottomNav from "@/components/BottomNav";
               <div className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md">
                 <div className="flex items-center gap-2 mb-5">
                   <div className="w-8 h-8 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500"><Activity size={15} /></div>
-                  <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Efisiensi Koleksi Iuran per Bulan</p>
+                <p className="text-[10px] text-blue-500 font-black uppercase tracking-widest">Efisiensi Koleksi Iuran per Bulan</p>
                 </div>
                 {collectionEfficiencyByMonth.length === 0 ? (
                   <p className="text-xs text-slate-600 text-center py-8">Belum ada data</p>
@@ -1565,7 +1572,7 @@ import BottomNav from "@/components/BottomNav";
                 {[
                   { icon: CheckCircle2, title: "Operasional Surat", value: `${completionRate}%`, desc: letters.length > 0 ? (completionRate >= 80 ? "Performa sangat baik" : completionRate >= 50 ? "Sedang berjalan normal" : "Perlu percepatan proses") : "Belum ada data", color: completionRate >= 80 ? "text-blue-600" : completionRate >= 50 ? "text-cyan-600" : "text-rose-500", bg: completionRate >= 80 ? "bg-blue-50" : completionRate >= 50 ? "bg-cyan-50" : "bg-rose-50" },
                   { icon: Wallet, title: "Kolektabilitas Iuran", value: `${collectionRate}%`, desc: iuran.length > 0 ? (collectionRate >= 80 ? "Koleksi sangat optimal" : collectionRate >= 50 ? "Koleksi berjalan normal" : "Perlu penagakan lebih intensif") : "Belum ada data", color: collectionRate >= 80 ? "text-blue-600" : collectionRate >= 50 ? "text-cyan-600" : "text-rose-500", bg: collectionRate >= 80 ? "bg-blue-50" : collectionRate >= 50 ? "bg-cyan-50" : "bg-rose-50" },
-                  { icon: Users, title: "Rata-rata Iuran/Warga", value: `Rp ${averageIuranPerCitizen.toLocaleString("id-ID")}`, desc: citizens.length > 0 ? "Kontribusi rata-rata per warga terdaftar" : "Belum ada data warga", color: "text-blue-600", bg: "bg-blue-50" },
+                  { icon: Users, title: "Rata-rata Iuran/Warga", value: `Rp ${averageIuranPerProfile.toLocaleString("id-ID")}`, desc: profiles.length > 0 ? "Kontribusi rata-rata per warga terdaftar" : "Belum ada data warga", color: "text-blue-600", bg: "bg-blue-50" },
                 ].map((insight, i) => (
                   <div key={insight.title} className="rounded-4xl border border-blue-100/80 bg-white/80 shadow-sm p-5 transition-all hover:shadow-md hover:scale-[1.01]" style={{ animationDelay: `${i * 80}ms` }}>
                     <div className="flex items-center gap-2 mb-3">
@@ -1582,11 +1589,12 @@ import BottomNav from "@/components/BottomNav";
             </div>
           )}
         </div>
-      </div>
 
       {/* BottomNav hanya mobile */}
       <div className="lg:hidden">
         <BottomNav />
+      </div>
+      </div>
       </div>
     </div>
   );

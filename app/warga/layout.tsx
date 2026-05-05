@@ -1,6 +1,18 @@
-import type { ReactNode } from "react";
-import RouteGuard from "@/components/RouteGuard";
+"use client";
 
-export default function WargaLayout({ children }: { children: ReactNode }) {
-  return <RouteGuard allowedRole="warga">{children}</RouteGuard>;
+import RouteGuard from "@/components/RouteGuard";
+import FloatingPanicButton from "@/components/FloatingPanicButton";
+
+export default function WargaLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  console.log("HOOK CHECK - WargaLayout with RouteGuard added back");
+  return (
+    <RouteGuard allowedRole="warga">
+      {children}
+      <FloatingPanicButton />
+    </RouteGuard>
+  );
 }

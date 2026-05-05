@@ -7,45 +7,43 @@ import { useAuthGuard } from "@/lib/useAuthGuard";
 
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
+import type { Letter } from "@/store/useAppStore";
 
+export default function AdminSuratPage() {
   useAuthGuard();
   const letters = useAppStore((s) => s.letters);
-  const citizens = useAppStore((s) => s.citizens);
+  const profiles = useAppStore((s) => s.profiles);
   const updateLetterStatus = useAppStore((s) => s.updateLetterStatus);
+  const approveLetter = useAppStore((s) => s.approveLetter);
+  const rejectLetter = useAppStore((s) => s.rejectLetter);
   const setNotif = useAppStore((s) => s.setNotif);
   const fetchLetters = useAppStore((s) => s.fetchLetters);
   const loadingLetters = useAppStore((s) => s.loadingLetters);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"Semua" | Letter["status"]>("Semua");
+  const [statusFilter, setStatusFilter] = useState<"Semua" | "pending" | "approved" | "rejected">("Semua");
 
   useEffect(() => {
+    console.log('[ADMIN SURAT] Component mounted, calling fetchLetters...');
     fetchLetters();
   }, [fetchLetters]);
 
-  if (loadingLetters) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <span className="text-slate-500 font-bold">Memuat data surat...</span>
-          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
-        </div>
-      </div>
-    );
-  }
+  console.log('[ADMIN SURAT] All letters from store:', letters);
+  console.log('[ADMIN SURAT] Letters count:', letters.length);
+  console.log('[ADMIN SURAT] Letters data:', JSON.stringify(letters, null, 2));
 
-  const processCount = letters.filter((letter) => letter.status === "Proses").length;
-  const doneCount = letters.filter((letter) => letter.status === "Selesai").length;
+  const processCount = letters.filter((letter) => letter.status === "pending").length;
+  const doneCount = letters.filter((letter) => letter.status === "approved").length;
+  const rejectedCount = letters.filter((letter) => letter.status === "rejected").length;
   const completionRate = letters.length === 0 ? 0 : Math.round((doneCount / letters.length) * 100);
-  const uniqueApplicants = new Set(letters.map((letter) => letter.applicant)).size;
-  const latestIncoming = [...letters].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const uniqueApplicants = new Set(letters.map((letter) => letter.user_id)).size;
+  const latestIncoming = letters.length > 0 ? letters[0] : null;
 
   const filteredLetters = useMemo(() => {
-    return letters.filter((letter) => {
-      const matchesSearch = `${letter.type} ${letter.applicant} ${letter.date}`.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "Semua" ? true : letter.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [letters, search, statusFilter]);
+    // TEMPORARY: Remove all filters to show all data for debugging
+    console.log('[ADMIN SURAT] DEBUG MODE - Showing all letters without filters');
+    console.log('[ADMIN SURAT] Total letters before filter:', letters.length);
+    return letters;
+  }, [letters]);
 
   const groupedTypes = useMemo(() => {
     return Object.entries(
@@ -60,25 +58,41 @@ import Notification from "@/components/Notification";
 
   const priorityLetters = useMemo(() => {
     return [...letters]
-      .filter((letter) => letter.status === "Proses")
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((letter) => letter.status === "pending")
       .slice(0, 3);
   }, [letters]);
 
   const handleComplete = async (letter: Letter) => {
-    await updateLetterStatus(letter.id, "Selesai");
+    const result = await approveLetter(letter.id, "Disetujui oleh admin");
     setNotif({
-      title: "Surat selesai diproses",
-      message: `${letter.type} atas nama ${letter.applicant} sudah ditandai selesai.`,
-      variant: "success",
+      title: result.success ? "Surat disetujui" : "Gagal menyetujui surat",
+      message: result.message,
+      variant: result.success ? "success" : "warning",
+      role: "admin",
+    });
+  };
+
+  const handleReject = async (letter: Letter) => {
+    const result = await rejectLetter(letter.id, "Ditolak oleh admin");
+    setNotif({
+      title: result.success ? "Surat ditolak" : "Gagal menolak surat",
+      message: result.message,
+      variant: result.success ? "success" : "warning",
       role: "admin",
     });
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans max-w-md mx-auto relative shadow-2xl overflow-x-hidden pb-24">
+    <div className="min-h-screen font-sans relative overflow-x-hidden pb-24">
       <Notification />
-      <div className="bg-linear-to-b from-cyan-500 via-blue-600 to-blue-700 text-white px-6 pt-7 pb-8 relative overflow-hidden animate-in fade-in duration-500">
+      <div style={{ display: loadingLetters ? 'block' : 'none' }} className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <span className="text-slate-500 font-bold">Memuat data surat...</span>
+          <div className="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin" />
+        </div>
+      </div>
+      <div style={{ display: !loadingLetters ? 'block' : 'none' }}>
+        <div className="bg-linear-to-b from-cyan-500 via-blue-600 to-blue-700 text-white px-6 pt-7 pb-8 relative overflow-hidden animate-in fade-in duration-500">
         <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-cyan-200/35 blur-3xl" />
         <div className="absolute top-10 left-1/2 h-24 w-24 -translate-x-1/2 rounded-full bg-sky-200/20 blur-3xl" />
         <div className="absolute inset-0 bg-linear-to-br from-white/8 via-transparent to-blue-900/10" />
@@ -140,7 +154,7 @@ import Notification from "@/components/Notification";
           <div className="rounded-4xl p-4 border border-blue-100/80 bg-linear-to-br from-white via-cyan-50/40 to-blue-50/70 shadow-xl shadow-blue-100/60 text-left">
             <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100 flex items-center justify-center mb-3"><Users2 size={20} /></div>
             <p className="text-[11px] text-blue-500 font-black uppercase tracking-widest">Warga Terlibat</p>
-            <h4 className="text-2xl font-black text-slate-800 mt-1">{Math.min(uniqueApplicants, citizens.length)}</h4>
+            <h4 className="text-2xl font-black text-slate-800 mt-1">{Math.min(uniqueApplicants, profiles.length)}</h4>
             <p className="text-xs text-slate-600 mt-1">Warga yang mengajukan surat.</p>
           </div>
         </div>
@@ -159,9 +173,9 @@ import Notification from "@/components/Notification";
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari surat atau nama warga" className="w-full bg-transparent text-sm text-slate-700 outline-none" />
             </div>
             <div className="flex gap-2 flex-wrap">
-              {(["Semua", "Proses", "Selesai"] as const).map((status) => (
+              {(["Semua", "pending", "approved", "rejected"] as const).map((status) => (
                 <button key={status} onClick={() => setStatusFilter(status)} className={`px-4 py-2 rounded-full text-xs font-black transition-all ${statusFilter === status ? "bg-linear-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-100" : "bg-white border border-blue-100 text-blue-500"}`}>
-                  {status}
+                  {status === "pending" ? "Pending" : status === "approved" ? "Disetujui" : status === "rejected" ? "Ditolak" : status}
                 </button>
               ))}
             </div>
@@ -172,14 +186,14 @@ import Notification from "@/components/Notification";
           <div className="rounded-4xl bg-white border border-blue-100/70 p-5 shadow-sm shadow-blue-100/50">
             <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 flex items-center justify-center mb-4 border border-blue-100"><CalendarDays size={18} /></div>
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Surat Terbaru</p>
-            <p className="mt-2 text-sm font-black text-slate-900">{latestIncoming?.type ?? "Belum ada data"}</p>
-            <p className="mt-1 text-xs text-slate-600">{latestIncoming ? `${latestIncoming.applicant} • ${latestIncoming.date}` : "Menunggu data terbaru"}</p>
+            <p className="mt-2 text-sm font-black text-slate-900">{latestIncoming?.type || "Surat"}</p>
+            <p className="mt-1 text-xs text-slate-600">{latestIncoming ? `User ID: ${latestIncoming.user_id.slice(0, 8)}...` : "Menunggu data terbaru"}</p>
           </div>
           <div className="rounded-4xl bg-white border border-blue-100/70 p-5 shadow-sm shadow-blue-100/50">
             <div className="w-11 h-11 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 flex items-center justify-center mb-4 border border-blue-100"><CircleAlert size={18} /></div>
             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Prioritas Hari Ini</p>
-            <p className="mt-2 text-sm font-black text-slate-900">{priorityLetters[0]?.type ?? "Semua aman"}</p>
-            <p className="mt-1 text-xs text-slate-600">{priorityLetters[0] ? `${priorityLetters[0].applicant} perlu tindak lanjut` : "Tidak ada antrean prioritas"}</p>
+            <p className="mt-2 text-sm font-black text-slate-900">{priorityLetters[0]?.type || "Surat"}</p>
+            <p className="mt-1 text-xs text-slate-600">{priorityLetters[0] ? `User ID: ${priorityLetters[0].user_id.slice(0, 8)}... perlu tindak lanjut` : "Tidak ada antrean prioritas"}</p>
           </div>
         </div>
 
@@ -214,40 +228,43 @@ import Notification from "@/components/Notification";
 
         <div className="space-y-3">
           {filteredLetters.length === 0 ? (
-            <div className="bg-white rounded-4xl border border-blue-100/70 shadow-sm p-8 text-center">
+            <div className="w-full bg-white rounded-4xl border border-blue-100/70 shadow-sm p-8 text-center">
               <div className="w-14 h-14 rounded-3xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-500 border border-blue-100 flex items-center justify-center mx-auto mb-3"><FileText size={22} /></div>
               <p className="text-sm font-bold text-slate-700">Tidak ada surat yang sesuai</p>
               <p className="text-xs text-slate-500 mt-1">Coba ubah pencarian atau filter status.</p>
             </div>
           ) : (
             filteredLetters.map((letter, index) => (
-              <div key={letter.id} className="bg-white/90 p-5 rounded-4xl border border-blue-100/70 shadow-sm shadow-blue-50/60 text-left animate-in fade-in transition-all duration-300 hover:scale-[1.01]" style={{ animationDelay: `${index * 35}ms` }}>
+              <div key={letter.id} className="w-full bg-white/90 p-5 rounded-4xl border border-blue-100/70 shadow-sm shadow-blue-50/60 text-left animate-in fade-in transition-all duration-300 hover:scale-[1.01]" style={{ animationDelay: `${index * 35}ms` }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-4 min-w-0">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 ${letter.status === "Selesai" ? "bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border-blue-100" : "bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border-blue-100"}`}>
-                      <FileText size={20} />
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 ${letter.status === "approved" ? "bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border-blue-100" : letter.status === "rejected" ? "bg-linear-to-br from-red-500/10 to-rose-400/15 text-red-600 border-red-100" : "bg-linear-to-br from-yellow-500/10 to-amber-400/15 text-yellow-600 border-yellow-100"}`}>
+                      {letter.status === "approved" ? <CheckCircle2 size={20} /> : letter.status === "rejected" ? <CircleAlert size={20} /> : <Clock3 size={20} />}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-black text-slate-800 leading-snug">{letter.type}</h4>
-                      <p className="text-xs text-slate-600 mt-1">{letter.applicant} • {letter.date}</p>
+                      <h4 className="font-black text-slate-800 leading-snug">{letter.type || "Surat"}</h4>
+                      <p className="text-xs text-slate-600 mt-1">User ID: {letter.user_id.slice(0, 8)}...</p>
+                      {letter.admin_note && (
+                        <p className="text-xs text-slate-500 mt-1 italic">Catatan: {letter.admin_note}</p>
+                      )}
                     </div>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${letter.status === "Selesai" ? "bg-linear-to-r from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100" : "bg-linear-to-r from-blue-600 to-cyan-500 text-white"}`}>
-                    {letter.status}
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${letter.status === "approved" ? "bg-linear-to-r from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100" : letter.status === "rejected" ? "bg-linear-to-r from-red-500/10 to-rose-400/15 text-red-600 border border-red-100" : "bg-linear-to-r from-yellow-500/10 to-amber-400/15 text-yellow-600 border border-yellow-100"}`}>
+                    {letter.status === "approved" ? "Disetujui" : letter.status === "rejected" ? "Ditolak" : "Pending"}
                   </span>
                 </div>
 
                 <div className="mt-4 flex gap-3">
-                  <button onClick={() => setNotif(`Surat ${letter.type} milik ${letter.applicant} sedang ${letter.status.toLowerCase()}.`)} className="flex-1 rounded-2xl border border-blue-100 bg-linear-to-br from-white to-cyan-50/70 py-3 text-sm font-bold text-blue-600 transition-all hover:scale-[1.01] active:scale-95">
+                  <button onClick={() => setNotif(`Surat ${letter.type} sedang ${letter.status}.`)} className="flex-1 rounded-2xl border border-blue-100 bg-linear-to-br from-white to-cyan-50/70 py-3 text-sm font-bold text-blue-600 transition-all hover:scale-[1.01] active:scale-95">
                     Lihat Ringkas
                   </button>
-                  {letter.status === "Proses" ? (
+                  {letter.status === "pending" ? (
                     <button onClick={() => handleComplete(letter)} className="flex-1 rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 text-white py-3 text-sm font-bold shadow-xl shadow-blue-100 transition-all hover:scale-[1.01] active:scale-95">
-                      Tandai Selesai
+                      Setujui
                     </button>
                   ) : (
-                    <button onClick={() => setNotif("Surat ini sudah selesai diproses.")} className="flex-1 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100 py-3 text-sm font-bold transition-all hover:scale-[1.01] active:scale-95">
-                      Sudah Selesai
+                    <button onClick={() => setNotif("Surat ini sudah diproses.")} className="flex-1 rounded-2xl bg-linear-to-br from-blue-500/10 to-cyan-400/15 text-blue-600 border border-blue-100 py-3 text-sm font-bold transition-all hover:scale-[1.01] active:scale-95">
+                      {letter.status === "approved" ? "Disetujui" : "Ditolak"}
                     </button>
                   )}
                 </div>
@@ -255,6 +272,7 @@ import Notification from "@/components/Notification";
             ))
           )}
         </div>
+      </div>
       </div>
       <BottomNav />
     </div>

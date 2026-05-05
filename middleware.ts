@@ -44,6 +44,8 @@ export async function middleware(request: NextRequest) {
   const protectedPrefixes = ["/dashboard", "/warga", "/admin"];
   const isProtected = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
 
+  // MIDDLEWARE ONLY GUARD: Block unauthenticated access to protected routes
+  // NO role-based redirect - role logic is handled by client-side
   if (!user && isProtected) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);

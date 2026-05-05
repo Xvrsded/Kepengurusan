@@ -9,10 +9,11 @@ type HydrationGuardProps = {
 
 export default function HydrationGuard({ children }: HydrationGuardProps) {
   const hasHydrated = useAppStore((s) => s.hasHydrated);
+  console.log("HOOK CHECK - HydrationGuard hooks added back");
 
-  if (!hasHydrated) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
+  return (
+    <>
+      <div style={{ display: !hasHydrated ? 'block' : 'none' }} className="min-h-screen bg-slate-50 flex items-center justify-center px-6">
         <div className="w-full max-w-md bg-white rounded-4xl border border-slate-100 shadow-xl p-6 animate-pulse">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-slate-200" />
@@ -31,8 +32,7 @@ export default function HydrationGuard({ children }: HydrationGuardProps) {
           </div>
         </div>
       </div>
-    );
-  }
-
-  return <>{children}</>;
+      <div style={{ display: hasHydrated ? 'block' : 'none' }}>{children}</div>
+    </>
+  );
 }

@@ -73,62 +73,37 @@ export default function AppToast() {
 
     setRenderToast(true);
     setIsLeaving(false);
-
-    const visibleDuration = toast.variant === "success" ? 3200 : 3000;
-    const leaveAt = window.setTimeout(() => {
+    const hideTimer = setTimeout(() => {
       setIsLeaving(true);
-    }, Math.max(visibleDuration - 260, 1200));
+      setTimeout(() => {
+        setRenderToast(false);
+      }, 300);
+    }, 3200);
+    return () => clearTimeout(hideTimer);
+  }, [showNotification, toast]);
 
-    const timeout = window.setTimeout(() => {
-      clearNotif();
-      setRenderToast(false);
-      setIsLeaving(false);
-    }, visibleDuration);
-
-    return () => {
-      window.clearTimeout(leaveAt);
-      window.clearTimeout(timeout);
-    };
-  }, [clearNotif, showNotification, toast]);
-
-  useEffect(() => {
-    if (showNotification || !renderToast) return;
-
-    const timeout = window.setTimeout(() => {
-      setRenderToast(false);
-      setIsLeaving(false);
-    }, 260);
-
-    return () => window.clearTimeout(timeout);
-  }, [renderToast, showNotification]);
-
-  if ((!showNotification && !renderToast) || !toast) {
-    return null;
-  }
-
-  const meta = getToastMeta({ ...toast, role: toast.role ?? currentRole });
-  const durationClassName = toast.variant === "success" ? "duration-[3200ms]" : "duration-[3000ms]";
+  const shouldDisplay = (showNotification || renderToast) && toast;
+  const meta = shouldDisplay && toast ? getToastMeta({ ...toast, role: toast.role ?? currentRole }) : getToastMeta({ message: "", variant: "info", title: "", role: currentRole });
+  
+  console.log("HOOK CHECK - AppToast hooks added back");
 
   return (
     <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4 pointer-events-none">
-      <div className={`pointer-events-auto relative overflow-hidden w-full max-w-md rounded-3xl border shadow-2xl backdrop-blur-sm transition-all duration-300 ${meta.cardClassName} ${isLeaving ? "-translate-y-2.5 opacity-0 scale-[0.98]" : "translate-y-0 opacity-100 scale-100"}`}>
+      <div style={{ display: shouldDisplay ? 'block' : 'none' }} className={`pointer-events-auto relative overflow-hidden w-full max-w-md rounded-3xl border shadow-2xl backdrop-blur-sm transition-all duration-300 ${meta.cardClassName} ${isLeaving ? "-translate-y-2.5 opacity-0 scale-[0.98]" : "translate-y-0 opacity-100 scale-100"}`}>
         <div className={`h-1.5 w-full bg-linear-to-r ${meta.accentClassName}`} />
         <div className="flex items-start gap-3 p-4">
           <div className={`mt-0.5 shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg ${meta.iconWrapClassName}`}>{meta.icon}</div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-black text-slate-900">{meta.title}</p>
-            {meta.badge ? <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{meta.badge}</p> : null}
-            <p className={`text-sm leading-relaxed mt-1 ${meta.messageClassName}`}>{toast.message}</p>
+            <p className="text-sm font-black text-slate-900">{shouldDisplay ? meta.title : ""}</p>
+            {shouldDisplay && meta.badge ? <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">{meta.badge}</p> : null}
+            <p className={`text-sm leading-relaxed mt-1 ${meta.messageClassName}`}>{shouldDisplay && toast ? toast.message : ""}</p>
           </div>
-          <button onClick={clearNotif} className="w-8 h-8 rounded-full bg-white/80 border border-white/70 text-slate-500 flex items-center justify-center transition-colors hover:text-slate-900" aria-label="Tutup notifikasi">
+          {shouldDisplay && <button onClick={clearNotif} className="w-8 h-8 rounded-full bg-white/80 border border-white/70 text-slate-500 flex items-center justify-center transition-colors hover:text-slate-900" aria-label="Tutup notifikasi">
             <X size={16} />
-          </button>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100/80 overflow-hidden">
-          <div className={`h-full origin-left scale-x-100 motion-safe:animate-[toast-progress_linear_forwards] ${durationClassName} ${meta.progressClassName}`} />
+          </button>}
         </div>
       </div>
-      <style>{`@keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }`}</style>
     </div>
   );
 }
+
