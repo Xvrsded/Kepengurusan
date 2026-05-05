@@ -41,8 +41,19 @@ export default function LoginPage() {
         return;
       }
 
-      // redirect cepat
-      window.location.href = "/";
+      // Fetch user role to determine redirect
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      // Redirect based on role
+      if (profile?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/warga");
+      }
 
     } finally {
       setIsLoading(false);

@@ -54,7 +54,8 @@ export default function RegisterPage() {
       // auto login
       await supabase.auth.signInWithPassword({ email, password });
 
-      window.location.href = "/";
+      // Redirect to warga dashboard (new users are always warga)
+      router.push("/warga");
 
     } finally {
       setLoading(false);
