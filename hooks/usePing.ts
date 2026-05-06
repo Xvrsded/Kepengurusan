@@ -1,47 +1,106 @@
 import { useState, useEffect, useRef } from "react";
 
-export function usePing(interval: number = 3000) {
+export function usePing(activeInterval: number = 3000, inactiveInterval: number = 10000) {
   const [latency, setLatency] = useState<number | null>(null);
   const [status, setStatus] = useState<"loading" | "good" | "warning" | "error">("loading");
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const latenciesRef = useRef<number[]>([]);
+
+  const calculateMovingAverage = (newLatency: number) => {
+    const latencies = latenciesRef.current;
+    latencies.push(newLatency);
+    
+    // Keep only last 5 measurements
+    if (latencies.length > 5) {
+      latencies.shift();
+    }
+    
+    const sum = latencies.reduce((acc, val) => acc + val, 0);
+    return sum / latencies.length;
+  };
 
   const ping = async () => {
-    const startTime = Date.now();
+    // Abort previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, 3000); // 3 second timeout
+
     try {
-      const response = await fetch("/api/ping");
+      const startTime = performance.now();
+      const response = await fetch("/api/ping", {
+        signal: abortController.signal,
+      });
       const data = await response.json();
-      const endTime = Date.now();
+      const endTime = performance.now();
+      clearTimeout(timeoutId);
+      
       const ms = endTime - startTime;
+      const avgLatency = calculateMovingAverage(ms);
       
-      setLatency(ms);
+      setLatency(Math.round(avgLatency));
       
-      if (ms < 80) {
+      if (avgLatency < 80) {
         setStatus("good");
-      } else if (ms < 200) {
+      } else if (avgLatency < 150) {
         setStatus("warning");
       } else {
         setStatus("error");
       }
-    } catch (error) {
-      console.error("Ping error:", error);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error?.name === "AbortError") {
+        console.warn("Ping request aborted (timeout)");
+      } else {
+        console.error("Ping error:", error);
+      }
       setLatency(null);
       setStatus("error");
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
   useEffect(() => {
     ping(); // Initial ping
     
-    intervalRef.current = setInterval(() => {
-      ping();
-    }, interval);
+    const updateInterval = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      
+      const interval = document.visibilityState === "visible" ? activeInterval : inactiveInterval;
+      intervalRef.current = setInterval(() => {
+        ping();
+      }, interval);
+    };
+
+    updateInterval();
+
+    // Listen for visibility changes
+    const handleVisibilityChange = () => {
+      updateInterval();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [interval]);
+  }, [activeInterval, inactiveInterval]);
 
   return { latency, status };
 }
