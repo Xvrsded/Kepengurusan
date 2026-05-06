@@ -15,6 +15,7 @@ export default function EditProfilePage() {
   const setNotif = useAppStore((s) => s.setNotif);
 
   const [fullName, setFullName] = useState(userProfile.name || "");
+  const [phone, setPhone] = useState(userProfile.phone || "");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(userProfile.photo_url || null);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,6 +71,7 @@ export default function EditProfilePage() {
         .from('profiles')
         .update({
           full_name: fullName,
+          phone: phone,
           photo_url: photoUrl,
         })
         .eq('id', supabaseUser.id);
@@ -152,10 +154,24 @@ export default function EditProfilePage() {
           />
         </div>
 
+        {/* Phone Input */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-4">
+          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
+            Nomor HP
+          </label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Masukkan nomor HP"
+            className="w-full text-base text-slate-900 placeholder:text-slate-400 outline-none"
+          />
+        </div>
+
         {/* Save Button */}
         <button
           onClick={handleSave}
-          disabled={isLoading || !fullName.trim()}
+          disabled={isLoading || !fullName.trim() || !phone.trim()}
           className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
           {isLoading ? (
