@@ -110,6 +110,7 @@ export type UserProfile = {
   address: string;
   phone: string;
   role: AppRole | null;
+  photo_url?: string | null;
 };
 
 export type RegisteredAccount = UserProfile & {
@@ -965,7 +966,7 @@ export const useAppStore = create<AppStore>()(
       console.log("[SYNC] Fetching profile data for user:", user.id);
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("full_name, phone, role, email")
+        .select("full_name, phone, role, email, photo_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -1031,6 +1032,7 @@ export const useAppStore = create<AppStore>()(
           address: profile.address ?? "",
           phone: profile.phone ?? "",
           role,
+          photo_url: profile.photo_url,
         },
       });
       console.log("[SYNC] syncSupabaseUser completed successfully with role:", role);

@@ -223,11 +223,15 @@ export default function WargaProfilePage() {
         <div className="p-6">
           <div className="text-center mb-6">
             <div className="w-24 h-24 bg-slate-200 rounded-full mx-auto mb-4 overflow-hidden border-4 border-white shadow-lg relative">
-              <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userProfile.name || "warga")}`} alt="profile" fill unoptimized />
+              {userProfile.photo_url ? (
+                <img src={userProfile.photo_url} alt="profile" className="w-full h-full object-cover" />
+              ) : (
+                <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userProfile.name || "warga")}`} alt="profile" fill unoptimized />
+              )}
             </div>
             <h3 className="text-xl font-bold text-slate-800">{userProfile.name || "Nama warga belum tersedia"}</h3>
             <p className="text-sm text-slate-500">{userProfile.address || "Alamat belum tersedia"}</p>
-            <button onClick={() => setIsEditing(true)} className="mt-4 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold shadow-xl transition-all hover:scale-105 active:scale-95">
+            <button onClick={() => router.push("/warga/profile/edit")} className="mt-4 inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-bold shadow-xl transition-all hover:scale-105 active:scale-95">
               <PencilLine size={16} /> Edit Profil
             </button>
           </div>
