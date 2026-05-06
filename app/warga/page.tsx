@@ -24,6 +24,7 @@ import {
 import { Skeleton } from "@/components/Skeleton";
 import Logo from "@/components/ui/Logo";
 import { createClient } from "@/lib/supabase/client";
+import PingStatus from "@/components/PingStatus";
 
 export default function WargaDashboardPage() {
   useAuthGuard();
@@ -201,8 +202,11 @@ export default function WargaDashboardPage() {
           <div className="absolute top-10 left-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
           <div className="absolute -bottom-8 left-0 w-28 h-28 bg-white/10 rounded-full blur-2xl" />
           <div className="relative z-10">
-            <div className="flex justify-center mb-4">
-              <Logo size="large" />
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-center flex-1">
+                <Logo size="large" />
+              </div>
+              <PingStatus />
             </div>
             <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-blue-50 backdrop-blur-sm shadow-sm">
               <Sparkles size={12} className="mr-1.5" /> Dashboard Warga
