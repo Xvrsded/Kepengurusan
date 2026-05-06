@@ -13,12 +13,10 @@ export type Message = {
 };
 
 export type Conversation = {
-  id: string;
-  name: string;
-  photo_url: string | null;
+  user_id: string;
+  full_name: string;
   last_message: string;
-  last_message_time: string;
-  unread_count: number;
+  last_time: string;
 };
 
 export async function sendMessage(senderId: string, receiverId: string, message: string) {
@@ -85,7 +83,7 @@ export async function getConversations(userId: string): Promise<Conversation[]> 
   try {
     // Get all conversations with last message and unread count
     const { data: conversations, error } = await supabase
-      .rpc('get_user_conversations', { user_id: userId });
+      .rpc('get_conversations', { user_id: userId });
 
     if (error) {
       console.error("RPC error:", JSON.stringify(error, null, 2));
@@ -141,7 +139,7 @@ async function getConversationsFallback(userId: string): Promise<Conversation[]>
 
     return Array.from(conversations.values());
   } catch (err) {
-    console.error("Fallback crash:", err);
+    console.error("Fallback crash:", JSON.stringify(err, null, 2));
     return [];
   }
 }

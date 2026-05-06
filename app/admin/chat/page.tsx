@@ -30,8 +30,8 @@ export default function AdminChatPage() {
     try {
       const convs = await getConversations(supabaseUser.id);
       setConversations(convs);
-    } catch (error) {
-      console.error("Error loading conversations:", error);
+    } catch (error: any) {
+      console.error("Error loading conversations:", JSON.stringify(error, null, 2));
     } finally {
       setLoadingConversations(false);
     }
@@ -110,41 +110,35 @@ export default function AdminChatPage() {
                   Belum ada percakapan.
                 </p>
               ) : (
-                conversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => handleSelectUser(conv.id, conv.name)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-left relative"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
-                      {conv.photo_url ? (
-                        <img src={conv.photo_url} alt={conv.name} className="w-full h-full object-cover" />
-                      ) : (
-                        (conv.name || "U").charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-900 truncate">
-                          {conv.name}
+                conversations.map((conv) => {
+                  if (!conv.user_id) return null;
+                  return (
+                    <button
+                      key={conv.user_id}
+                      onClick={() => handleSelectUser(conv.user_id, conv.full_name)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-left relative"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
+                        {(conv.full_name || "U").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-900 truncate">
+                            {conv.full_name}
+                          </p>
+                          <span className="text-xs text-slate-400 flex items-center gap-1 shrink-0">
+                            <Clock size={12} />
+                            {formatTime(conv.last_time)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 truncate">
+                          {conv.last_message}
                         </p>
-                        <span className="text-xs text-slate-400 flex items-center gap-1 shrink-0">
-                          <Clock size={12} />
-                          {formatTime(conv.last_message_time)}
-                        </span>
                       </div>
-                      <p className="text-xs text-slate-500 mt-1 truncate">
-                        {conv.last_message}
-                      </p>
-                    </div>
-                    {conv.unread_count > 0 && (
-                      <div className="min-w-6 h-6 px-2 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
-                        {conv.unread_count > 9 ? "9+" : conv.unread_count}
-                      </div>
-                    )}
-                    <MessageSquare size={16} className="ml-2 text-slate-400 shrink-0" />
-                  </button>
-                ))
+                      <MessageSquare size={16} className="ml-2 text-slate-400 shrink-0" />
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
