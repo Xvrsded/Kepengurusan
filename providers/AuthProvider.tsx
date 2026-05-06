@@ -7,23 +7,28 @@ import { useAppStore } from '@/store/useAppStore'
 const supabase = createClient()
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    const init = async () => {
-      console.log("🔄 INIT AUTH");
+  const handleSession = async (session: any) => {
+    console.log("🔄 HANDLE SESSION", session ? "SESSION EXISTS" : "NO SESSION");
 
-      const { data } = await supabase.auth.getSession();
-
-      if (!data.session) {
-        useAppStore.setState({
-          supabaseUser: null,
+    if (!session) {
+      useAppStore.setState({
+        supabaseUser: null,
+        role: null,
+        userProfile: {
+          name: "",
+          nik: "",
+          address: "",
+          phone: "",
           role: null,
-          isAuthReady: true,
-        });
-        return;
-      }
+        },
+        isAuthReady: true,
+      });
+      return;
+    }
 
-      const user = data.session.user;
+    const user = session.user;
 
+    try {
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
@@ -43,10 +48,56 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         isAuthReady: true,
       });
 
-      console.log("✅ AUTH READY");
+      console.log("✅ AUTH READY", profile?.role || "warga");
+    } catch (error) {
+      console.error("❌ Error fetching profile:", error);
+      // Fallback to warga role if profile fetch fails
+      useAppStore.setState({
+        supabaseUser: user,
+        role: "warga",
+        userProfile: {
+          name: user.email || "",
+          nik: "",
+          address: "",
+          phone: "",
+          role: "warga",
+        },
+        isAuthReady: true,
+      });
+      console.log("✅ AUTH READY (FALLBACK)");
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      console.log("🔄 INIT AUTH");
+
+      const { data } = await supabase.auth.getSession();
+
+      if (!mounted) return;
+
+      await handleSession(data.session);
     };
 
     init();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: string, session: any) => {
+        console.log("🔔 AUTH STATE CHANGE:", event);
+        if (!mounted) return;
+        await handleSession(session);
+      }
+    );
+
+    // Cleanup on unmount
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      console.log("🧹 AUTH PROVIDER CLEANUP");
+    };
   }, []);
 
   return children
