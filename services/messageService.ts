@@ -9,6 +9,16 @@ export type Message = {
   message: string;
   created_at: string;
   read_at: string | null;
+  is_read: boolean;
+};
+
+export type Conversation = {
+  id: string;
+  name: string;
+  photo_url: string | null;
+  last_message: string;
+  last_message_time: string;
+  unread_count: number;
 };
 
 export async function sendMessage(senderId: string, receiverId: string, message: string) {
@@ -48,7 +58,7 @@ export async function getMessages(userId: string, targetId: string) {
 export async function markAsRead(messageId: string) {
   const { error } = await supabase
     .from("messages")
-    .update({ read_at: new Date().toISOString() })
+    .update({ read_at: new Date().toISOString(), is_read: true })
     .eq("id", messageId);
 
   if (error) {
@@ -57,40 +67,90 @@ export async function markAsRead(messageId: string) {
   }
 }
 
-export async function getConversations(userId: string) {
-  // Get all unique conversation partners
-  const { data: sentMessages } = await supabase
+export async function markConversationAsRead(userId: string, partnerId: string) {
+  const { error } = await supabase
     .from("messages")
-    .select("receiver_id, profiles!messages_receiver_id_fkey(full_name, photo_url)")
-    .eq("sender_id", userId);
+    .update({ read_at: new Date().toISOString(), is_read: true })
+    .eq("sender_id", partnerId)
+    .eq("receiver_id", userId)
+    .eq("is_read", false);
 
-  const { data: receivedMessages } = await supabase
+  if (error) {
+    console.error("Error marking conversation as read:", error);
+    throw error;
+  }
+}
+
+export async function getConversations(userId: string): Promise<Conversation[]> {
+  // Get all conversations with last message and unread count
+  const { data: conversations, error } = await supabase
+    .rpc('get_user_conversations', { user_id: userId });
+
+  if (error) {
+    console.error("Error fetching conversations:", error);
+    // Fallback to manual query if RPC doesn't exist
+    return getConversationsFallback(userId);
+  }
+
+  return conversations as Conversation[];
+}
+
+// Fallback function for conversations without RPC
+async function getConversationsFallback(userId: string): Promise<Conversation[]> {
+  // Get all messages involving the user
+  const { data: messages, error } = await supabase
     .from("messages")
-    .select("sender_id, profiles!messages_sender_id_fkey(full_name, photo_url)")
-    .eq("receiver_id", userId);
+    .select(`
+      id,
+      sender_id,
+      receiver_id,
+      message,
+      created_at,
+      is_read,
+      sender_profile:profiles!messages_sender_id_fkey(id, full_name, photo_url),
+      receiver_profile:profiles!messages_receiver_id_fkey(id, full_name, photo_url)
+    `)
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+    .order("created_at", { ascending: false });
 
-  // Combine and deduplicate
-  const conversations = new Map();
+  if (error) {
+    console.error("Error fetching messages for conversations:", error);
+    return [];
+  }
 
-  sentMessages?.forEach((msg: any) => {
-    if (!conversations.has(msg.receiver_id)) {
-      conversations.set(msg.receiver_id, {
-        id: msg.receiver_id,
-        name: msg.profiles?.full_name || "Unknown",
-        photo_url: msg.profiles?.photo_url,
+  // Group by conversation partner
+  const conversationMap = new Map<string, Conversation>();
+
+  messages?.forEach((msg: any) => {
+    const isSender = msg.sender_id === userId;
+    const partnerId = isSender ? msg.receiver_id : msg.sender_id;
+    const partnerProfile = isSender ? msg.receiver_profile : msg.sender_profile;
+
+    if (!conversationMap.has(partnerId)) {
+      conversationMap.set(partnerId, {
+        id: partnerId,
+        name: partnerProfile?.full_name || "Unknown",
+        photo_url: partnerProfile?.photo_url,
+        last_message: msg.message,
+        last_message_time: msg.created_at,
+        unread_count: isSender ? 0 : (msg.is_read ? 0 : 1),
       });
+    } else {
+      // Update last message if this one is newer
+      const existing = conversationMap.get(partnerId)!;
+      if (new Date(msg.created_at) > new Date(existing.last_message_time)) {
+        existing.last_message = msg.message;
+        existing.last_message_time = msg.created_at;
+      }
+      // Add to unread count if this is a received unread message
+      if (!isSender && !msg.is_read) {
+        existing.unread_count += 1;
+      }
     }
   });
 
-  receivedMessages?.forEach((msg: any) => {
-    if (!conversations.has(msg.sender_id)) {
-      conversations.set(msg.sender_id, {
-        id: msg.sender_id,
-        name: msg.profiles?.full_name || "Unknown",
-        photo_url: msg.profiles?.photo_url,
-      });
-    }
-  });
-
-  return Array.from(conversations.values());
+  // Convert to array and sort by last message time
+  return Array.from(conversationMap.values()).sort(
+    (a, b) => new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
+  );
 }

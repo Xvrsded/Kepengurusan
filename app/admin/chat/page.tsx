@@ -1,31 +1,66 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquare, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/useAppStore";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import ChatBox from "@/components/ChatBox";
+import { getConversations, markConversationAsRead, type Conversation } from "@/services/messageService";
 
 export default function AdminChatPage() {
   useAuthGuard();
   const router = useRouter();
   const supabaseUser = useAppStore((s) => s.supabaseUser);
-  const profiles = useAppStore((s) => s.profiles);
-  const fetchProfiles = useAppStore((s) => s.fetchProfiles);
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [selectedUserName, setSelectedUserName] = useState<string>("");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(true);
 
   useEffect(() => {
-    fetchProfiles();
-  }, [fetchProfiles]);
+    if (supabaseUser) {
+      loadConversations();
+    }
+  }, [supabaseUser]);
 
-  const wargaProfiles = profiles.filter((p) => p.role === "warga");
+  const loadConversations = async () => {
+    if (!supabaseUser) return;
+    setLoadingConversations(true);
+    try {
+      const convs = await getConversations(supabaseUser.id);
+      setConversations(convs);
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
 
-  const handleSelectUser = (userId: string, userName: string) => {
+  const handleSelectUser = async (userId: string, userName: string) => {
     setSelectedUserId(userId);
     setSelectedUserName(userName);
+    // Mark conversation as read
+    if (supabaseUser) {
+      await markConversationAsRead(supabaseUser.id, userId);
+      // Reload conversations to update unread count
+      loadConversations();
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Baru saja";
+    if (diffMins < 60) return `${diffMins}m lalu`;
+    if (diffHours < 24) return `${diffHours}j lalu`;
+    if (diffDays < 7) return `${diffDays}h lalu`;
+    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   };
 
   return (
@@ -46,7 +81,10 @@ export default function AdminChatPage() {
         {selectedUserId ? (
           <div className="h-[calc(100vh-200px)]">
             <button
-              onClick={() => setSelectedUserId(null)}
+              onClick={() => {
+                setSelectedUserId(null);
+                loadConversations();
+              }}
               className="mb-4 text-sm text-slate-600 hover:text-slate-900 flex items-center gap-2"
             >
               <ArrowLeft size={16} /> Kembali ke daftar
@@ -61,29 +99,50 @@ export default function AdminChatPage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h2 className="text-base font-bold text-slate-900 mb-4">Pilih Warga untuk Chat</h2>
+            <h2 className="text-base font-bold text-slate-900 mb-4">Percakapan</h2>
             <div className="space-y-2">
-              {wargaProfiles.length === 0 ? (
+              {loadingConversations ? (
+                <div className="text-center py-8">
+                  <div className="h-6 w-6 rounded-full border-4 border-slate-200 border-t-blue-500 animate-spin mx-auto" />
+                </div>
+              ) : conversations.length === 0 ? (
                 <p className="text-sm text-slate-500 text-center py-8">
-                  Belum ada warga terdaftar.
+                  Belum ada percakapan.
                 </p>
               ) : (
-                wargaProfiles.map((profile) => (
+                conversations.map((conv) => (
                   <button
-                    key={profile.id}
-                    onClick={() => handleSelectUser(profile.id, profile.name || "Unknown")}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                    key={conv.id}
+                    onClick={() => handleSelectUser(conv.id, conv.name)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors text-left relative"
                   >
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                      {(profile.name || "U").charAt(0).toUpperCase()}
+                    <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg shrink-0 overflow-hidden">
+                      {conv.photo_url ? (
+                        <img src={conv.photo_url} alt={conv.name} className="w-full h-full object-cover" />
+                      ) : (
+                        (conv.name || "U").charAt(0).toUpperCase()
+                      )}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">
-                        {profile.name || "Unknown"}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {conv.name}
+                        </p>
+                        <span className="text-xs text-slate-400 flex items-center gap-1 shrink-0">
+                          <Clock size={12} />
+                          {formatTime(conv.last_message_time)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 truncate">
+                        {conv.last_message}
                       </p>
-                      <p className="text-xs text-slate-500">{profile.phone || "No HP tidak tersedia"}</p>
                     </div>
-                    <MessageSquare size={16} className="ml-auto text-slate-400" />
+                    {conv.unread_count > 0 && (
+                      <div className="min-w-6 h-6 px-2 rounded-full bg-blue-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                        {conv.unread_count > 9 ? "9+" : conv.unread_count}
+                      </div>
+                    )}
+                    <MessageSquare size={16} className="ml-2 text-slate-400 shrink-0" />
                   </button>
                 ))
               )}

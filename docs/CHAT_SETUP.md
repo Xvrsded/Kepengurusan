@@ -11,13 +11,15 @@ CREATE TABLE IF NOT EXISTS messages (
   receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   message TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  read_at TIMESTAMP WITH TIME ZONE
+  read_at TIMESTAMP WITH TIME ZONE,
+  is_read BOOLEAN DEFAULT FALSE
 );
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_is_read ON messages(is_read);
 
 -- Enable RLS
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
@@ -36,7 +38,7 @@ FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid() = sender_id);
 
--- Policy: Users can update read_at for messages they received
+-- Policy: Users can update read_at and is_read for messages they received
 CREATE POLICY "Users can mark received messages as read"
 ON messages
 FOR UPDATE

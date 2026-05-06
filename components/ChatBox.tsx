@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { markConversationAsRead } from "@/services/messageService";
 
 type ChatBoxProps = {
   currentUserId: string;
@@ -22,6 +23,8 @@ export default function ChatBox({ currentUserId, targetUserId, targetUserName }:
   useEffect(() => {
     if (currentUserId && targetUserId) {
       fetchMessages(currentUserId, targetUserId);
+      // Mark conversation as read when opening
+      markConversationAsRead(currentUserId, targetUserId);
     }
   }, [currentUserId, targetUserId, fetchMessages]);
 
