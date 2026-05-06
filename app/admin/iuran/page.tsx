@@ -25,8 +25,9 @@ export default function AdminIuranPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid" | "overdue">("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "bulanan" | "harian" | "non_rutin">("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newIuran, setNewIuran] = useState({ title: "", amount: "", due_date: "" });
+  const [newIuran, setNewIuran] = useState({ title: "", amount: "", due_date: "", category: "bulanan" as "bulanan" | "harian" | "non_rutin", period: "" });
   const [isCreating, setIsCreating] = useState(false);
   
   // Fetch lock to prevent spam
@@ -157,18 +158,19 @@ export default function AdminIuranPage() {
     });
   }, [iuranUserList]);
 
-  // Filter based on search and status
+  // Filter based on search, status, and category
   const filteredIuran = useMemo(() => {
     return iuranWithStatus.filter((iu) => {
       const master = iu.iuran_master;
       const profile = iu.profiles;
       const matchesSearch = !search || 
         master?.title.toLowerCase().includes(search.toLowerCase()) ||
-        profile?.name?.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || iu.displayStatus === statusFilter;
-      return matchesSearch && matchesStatus;
+        (profile?.name && profile.name.toLowerCase().includes(search.toLowerCase()));
+      const matchesStatus = statusFilter === "all" || iu.displayStatus === statusFilter;
+      const matchesCategory = categoryFilter === "all" || master?.category === categoryFilter;
+      return matchesSearch && matchesStatus && matchesCategory;
     });
-  }, [iuranWithStatus, search, statusFilter]);
+  }, [iuranWithStatus, search, statusFilter, categoryFilter]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -222,6 +224,8 @@ export default function AdminIuranPage() {
         title: newIuran.title,
         amount: parseFloat(newIuran.amount),
         due_date: newIuran.due_date,
+        category: newIuran.category,
+        period: newIuran.period || null,
         admin_id: supabaseUser.id,
       });
 
@@ -246,7 +250,7 @@ export default function AdminIuranPage() {
         variant: "success",
         role: "admin"
       });
-      setNewIuran({ title: "", amount: "", due_date: "" });
+      setNewIuran({ title: "", amount: "", due_date: "", category: "bulanan", period: "" });
       setShowCreateForm(false);
       fetchData(); // Immediate refetch
 
@@ -385,7 +389,31 @@ export default function AdminIuranPage() {
                 />
               </div>
               <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Kategori</label>
+                <select
+                  value={newIuran.category}
+                  onChange={(e) => setNewIuran({ ...newIuran, category: e.target.value as "bulanan" | "harian" | "non_rutin" })}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="bulanan">Bulanan</option>
+                  <option value="harian">Harian</option>
+                  <option value="non_rutin">Non Rutin</option>
+                </select>
               </div>
+              {(newIuran.category === "bulanan" || newIuran.category === "harian") && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-1">
+                    {newIuran.category === "bulanan" ? "Periode (Bulan/Tahun)" : "Tanggal"}
+                  </label>
+                  <input
+                    type={newIuran.category === "bulanan" ? "month" : "date"}
+                    value={newIuran.period}
+                    onChange={(e) => setNewIuran({ ...newIuran, period: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1">Nominal (Rp)</label>
                 <input
@@ -440,6 +468,16 @@ export default function AdminIuranPage() {
             />
           </div>
           <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as any)}
+            className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Semua Kategori</option>
+            <option value="bulanan">Bulanan</option>
+            <option value="harian">Harian</option>
+            <option value="non_rutin">Non Rutin</option>
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
             className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -475,7 +513,16 @@ export default function AdminIuranPage() {
                 <div key={masterId} className="rounded-4xl border border-indigo-100/80 bg-white/90 shadow-sm p-5">
                   <div className="flex items-start justify-between gap-3 mb-4">
                     <div className="min-w-0">
-                      <h3 className="text-sm font-black text-slate-800">{master.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-black text-slate-800">{master.title}</h3>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                          master.category === 'bulanan' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                          master.category === 'harian' ? 'bg-cyan-50 text-cyan-600 border border-cyan-100' :
+                          'bg-purple-50 text-purple-600 border border-purple-100'
+                        }`}>
+                          {master.category === 'bulanan' ? 'Bulanan' : master.category === 'harian' ? 'Harian' : 'Non Rutin'}
+                        </span>
+                      </div>
                       <p className="text-xs font-black text-blue-600 mt-1">Rp {master.amount.toLocaleString("id-ID")}</p>
                     </div>
                     <div className="shrink-0 text-right">

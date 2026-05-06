@@ -67,6 +67,8 @@ export type IuranMaster = {
   created_at: string;
   updated_at: string;
   is_active: boolean;
+  category: "bulanan" | "harian" | "non_rutin";
+  period: string | null;
 };
 
 export type IuranUser = {

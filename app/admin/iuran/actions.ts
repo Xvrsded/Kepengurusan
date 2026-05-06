@@ -13,6 +13,8 @@ export async function buatIuranMassal(formData: {
   description?: string;
   amount: number;
   due_date: string;
+  category?: "bulanan" | "harian" | "non_rutin";
+  period?: string | null;
   admin_id: string; // Didapat dari sesi user yang sedang login
 }) {
   try {
@@ -23,6 +25,8 @@ export async function buatIuranMassal(formData: {
         title: formData.title,
         amount: formData.amount,
         due_date: formData.due_date,
+        category: formData.category || 'bulanan',
+        period: formData.period || null,
         created_by: formData.admin_id
       })
       .select('id')
