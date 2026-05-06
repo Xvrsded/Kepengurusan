@@ -25,7 +25,7 @@ export default function AdminChatPage() {
   }, [supabaseUser]);
 
   const loadConversations = async () => {
-    if (!supabaseUser) return;
+    if (!supabaseUser?.id) return;
     setLoadingConversations(true);
     try {
       const convs = await getConversations(supabaseUser.id);

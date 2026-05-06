@@ -376,7 +376,13 @@ export default function AdminIuranPage() {
             onClick={() => router.push("/admin/iuran/verifications")}
             className="flex-1 rounded-2xl bg-linear-to-r from-amber-500 to-orange-500 py-3 text-xs font-black text-white shadow-lg shadow-amber-100 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2"
           >
-            <CheckCircle2 size={16} /> Verifikasi Pembayaran
+            <CheckCircle2 size={16} /> Verifikasi
+          </button>
+          <button 
+            onClick={() => router.push("/admin/iuran/unpaid")}
+            className="flex-1 rounded-2xl bg-linear-to-r from-rose-500 to-red-500 py-3 text-xs font-black text-white shadow-lg shadow-rose-100 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <AlertCircle size={16} /> Belum Bayar
           </button>
         </div>
 
