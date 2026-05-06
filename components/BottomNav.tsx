@@ -10,6 +10,7 @@ import {
   Bell,
   Vote,
   AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -25,16 +26,16 @@ export default function BottomNav() {
   const items = role === "admin"
     ? [
         { key: "home",    href: base,                  icon: LayoutDashboard, label: "Home"      },
+        { key: "chat",    href: `${base}/chat`,        icon: MessageSquare,   label: "Chat"      },
         { key: "surat",   href: `${base}/surat`,       icon: FileText,        label: "Data"      },
         { key: "iuran",   href: `${base}/iuran`,       icon: Wallet,          label: "Iuran"     },
-        { key: "voting",  href: `${base}/voting`,      icon: Vote,            label: "Voting"    },
         { key: "profile", href: `${base}/profile`,     icon: User,           label: "Profil"    },
       ]
     : [
         { key: "home",    href: base,             icon: LayoutDashboard, label: "Home"      },
+        { key: "chat",    href: `${base}/chat`,  icon: MessageSquare,   label: "Chat"      },
         { key: "surat",   href: `${base}/surat`,  icon: FileText,        label: suratLabel  },
         { key: "iuran",   href: `${base}/iuran`,  icon: Wallet,          label: "Iuran"     },
-        { key: "voting",  href: `${base}/voting`, icon: Vote,            label: "Voting"    },
         { key: "profile", href: `${base}/profile`, icon: User,           label: "Profil"    },
       ];
 

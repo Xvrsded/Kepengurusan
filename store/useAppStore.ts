@@ -177,6 +177,8 @@ export type AppStore = {
   iuranMaster: IuranMaster[];
   iuranUser: IuranUser[];
   notifications: AppNotification[];
+  messages: any[];
+  loadingMessages: boolean;
   loadingProfiles: boolean;
   loadingCitizens: boolean;
   loadingLetters: boolean;
@@ -231,6 +233,8 @@ export type AppStore = {
   createIuranMaster: (iuran: Omit<IuranMaster, "id" | "created_at" | "updated_at">) => Promise<{ success: boolean; message: string }>;
   updateIuranUserPayment: (iuranId: string) => Promise<{ success: boolean; message: string }>;
   fetchNotifications: () => Promise<void>;
+  fetchMessages: (userId: string, targetId: string) => Promise<void>;
+  sendMessage: (senderId: string, receiverId: string, message: string) => Promise<void>;
   refreshData: () => Promise<void>;
   setNotif: (payload: string | AppToast) => void;
   clearNotif: () => void;
@@ -290,6 +294,8 @@ export const useAppStore = create<AppStore>()(
     iuranMaster: [],
     iuranUser: [],
     notifications: [],
+    messages: [],
+    loadingMessages: false,
     loadingProfiles: false,
     loadingCitizens: false,
     loadingLetters: false,
@@ -657,6 +663,35 @@ export const useAppStore = create<AppStore>()(
       }
     },
 
+    fetchMessages: async (userId: string, targetId: string) => {
+      set({ loadingMessages: true, error: null });
+      try {
+        const { data, error } = await supabase
+          .from("messages")
+          .select("*")
+          .or(`and(sender_id.eq.${userId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${userId})`)
+          .order("created_at", { ascending: true });
+        if (error) throw error;
+        set({ messages: data ?? [], loadingMessages: false });
+      } catch (err) {
+        set({ loadingMessages: false, error: "Gagal memuat pesan. Silakan coba lagi." });
+      }
+    },
+
+    sendMessage: async (senderId: string, receiverId: string, message: string) => {
+      try {
+        const { error } = await supabase.from("messages").insert({
+          sender_id: senderId,
+          receiver_id: receiverId,
+          message: message.trim(),
+        });
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error sending message:", err);
+        set({ error: "Gagal mengirim pesan. Silakan coba lagi." });
+      }
+    },
+
     refreshData: async () => {
       // Individual fetches are exposed as store actions; pages can call them directly
       // This placeholder avoids circular ref at init time
@@ -796,6 +831,35 @@ export const useAppStore = create<AppStore>()(
           }
         });
 
+      // Subscribe to messages changes
+      const messagesChannel = supabase
+        .channel("messages-changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "messages",
+          },
+          async (payload: any) => {
+            console.log("[REALTIME] Messages change:", payload);
+            const supabaseUser = state.supabaseUser;
+            const currentMessages = state.messages;
+            if (currentMessages.length > 0 && supabaseUser) {
+              // Refresh messages if we have an active conversation
+              const targetId = currentMessages[0].sender_id === supabaseUser.id 
+                ? currentMessages[0].receiver_id 
+                : currentMessages[0].sender_id;
+              await state.fetchMessages(supabaseUser.id, targetId);
+            }
+          }
+        )
+        .subscribe((status: any) => {
+          if (status === "SUBSCRIBED") {
+            console.log("[REALTIME] Subscribed to messages");
+          }
+        });
+
       // Return cleanup function
       return () => {
         supabase.removeChannel(notificationsChannel);
@@ -804,6 +868,7 @@ export const useAppStore = create<AppStore>()(
         supabase.removeChannel(lettersChannel);
         supabase.removeChannel(iuranMasterChannel);
         supabase.removeChannel(iuranUserChannel);
+        supabase.removeChannel(messagesChannel);
       };
     },
 
