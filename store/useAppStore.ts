@@ -75,11 +75,14 @@ export type IuranUser = {
   id: string;
   iuran_master_id: string;
   user_id: string;
-  status: "unpaid" | "paid" | "overdue";
+  status: "unpaid" | "paid" | "overdue" | "pending" | "rejected";
   paid_at: string | null;
   created_at: string;
   updated_at: string;
   notes: string | null;
+  proof_url: string | null;
+  verified_by: string | null;
+  verified_at: string | null;
   iuran_master?: IuranMaster;
 };
 

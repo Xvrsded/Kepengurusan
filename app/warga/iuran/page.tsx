@@ -7,6 +7,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import BottomNav from "@/components/BottomNav";
 import Notification from "@/components/Notification";
+import PaymentModal from "@/components/PaymentModal";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "react-hot-toast";
 
@@ -28,6 +29,11 @@ export default function WargaIuranPage() {
   const [loading, setLoading] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "paid" | "overdue">("all");
+  
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedIuranId, setSelectedIuranId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   
   // Payment confirmation form state
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -109,6 +115,74 @@ export default function WargaIuranPage() {
     
     return { total, paid, unpaid, overdue, totalPaidAmount };
   }, [iuranWithStatus]);
+
+  // Open payment modal
+  const handleOpenPaymentModal = (iuranId: string) => {
+    setSelectedIuranId(iuranId);
+    setShowPaymentModal(true);
+  };
+
+  // Upload proof and submit payment
+  const handleUploadProof = async (file: File, notes: string) => {
+    if (!selectedIuranId || !supabaseUser?.id) return;
+
+    setIsUploading(true);
+
+    try {
+      // Upload to Supabase Storage
+      const fileName = `${Date.now()}_${file.name}`;
+      const filePath = `${supabaseUser.id}/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('payment-proofs')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw new Error('Gagal upload bukti: ' + uploadError.message);
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-proofs')
+        .getPublicUrl(filePath);
+
+      // Update iuran_user
+      const { error: updateError } = await supabase
+        .from('iuran_user')
+        .update({
+          proof_url: publicUrl,
+          status: 'pending',
+          paid_at: new Date().toISOString(),
+          notes: notes || null
+        })
+        .eq('id', selectedIuranId);
+
+      if (updateError) {
+        throw new Error('Gagal update status: ' + updateError.message);
+      }
+
+      setNotif({
+        title: "Berhasil",
+        message: "Bukti transfer berhasil diupload. Menunggu verifikasi admin.",
+        variant: "success",
+        role: "warga"
+      });
+
+      setShowPaymentModal(false);
+      setSelectedIuranId(null);
+      fetchUserIuran(supabaseUser.id);
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setNotif({
+        title: "Gagal",
+        message: error.message || "Terjadi kesalahan saat upload bukti",
+        variant: "warning",
+        role: "warga"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Fallback loading user check
   if (!supabaseUser) {
@@ -542,11 +616,20 @@ export default function WargaIuranPage() {
                     {displayStatus === 'unpaid' && (
                       <div className="mt-3">
                         <button 
-                          onClick={() => handlePay(iu.id)} 
-                          disabled={payingId === iu.id}
-                          className="w-full rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-100 transition-all hover:scale-[1.01] active:scale-95 disabled:opacity-60"
+                          onClick={() => handleOpenPaymentModal(iu.id)} 
+                          className="w-full rounded-2xl bg-linear-to-r from-blue-600 to-cyan-500 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-100 transition-all hover:scale-[1.01] active:scale-95"
                         >
-                          {payingId === iu.id ? "Memproses..." : "Bayar Sekarang"}
+                          Upload Bukti Transfer
+                        </button>
+                      </div>
+                    )}
+                    {displayStatus === 'rejected' && (
+                      <div className="mt-3">
+                        <button 
+                          onClick={() => handleOpenPaymentModal(iu.id)} 
+                          className="w-full rounded-2xl bg-linear-to-r from-rose-500 to-orange-500 py-2.5 text-xs font-black text-white shadow-lg shadow-rose-100 transition-all hover:scale-[1.01] active:scale-95"
+                        >
+                          Upload Ulang Bukti
                         </button>
                       </div>
                     )}
@@ -559,6 +642,13 @@ export default function WargaIuranPage() {
       </div>
 
       <BottomNav />
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSubmit={handleUploadProof}
+        isLoading={isUploading}
+      />
     </div>
   );
 }

@@ -365,12 +365,20 @@ export default function AdminIuranPage() {
         </div>
 
         {/* Create Button */}
-        <button 
-          onClick={() => setShowCreateForm(!showCreateForm)} 
-          className="w-full rounded-2xl bg-linear-to-r from-indigo-600 to-purple-500 py-3 text-xs font-black text-white shadow-lg shadow-indigo-100 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2"
-        >
-          <Plus size={16} /> Buat Iuran Baru
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setShowCreateForm(!showCreateForm)} 
+            className="flex-1 rounded-2xl bg-linear-to-r from-indigo-600 to-purple-500 py-3 text-xs font-black text-white shadow-lg shadow-indigo-100 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <Plus size={16} /> Buat Iuran Baru
+          </button>
+          <button 
+            onClick={() => router.push("/admin/iuran/verifications")}
+            className="flex-1 rounded-2xl bg-linear-to-r from-amber-500 to-orange-500 py-3 text-xs font-black text-white shadow-lg shadow-amber-100 transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <CheckCircle2 size={16} /> Verifikasi Pembayaran
+          </button>
+        </div>
 
         {/* Create Form */}
         {showCreateForm && (
