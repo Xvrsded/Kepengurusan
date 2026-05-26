@@ -68,7 +68,7 @@ export default function WargaDashboardPage() {
     return () => clearInterval(intervalId);
   }, [fetchLetters, fetchUserIuran, fetchNotifications, supabaseUser?.id]);
 
-  // Realtime subscription
+  // Realtime subscription (only letters and panic_alerts as per requirements)
   useEffect(() => {
     console.log("⚡ INIT REALTIME");
 
@@ -91,20 +91,6 @@ export default function WargaDashboardPage() {
         {
           event: "*",
           schema: "public",
-          table: "iuran_user",
-        },
-        (payload: any) => {
-          console.log("💰 IURAN CHANGE:", payload);
-          if (supabaseUser?.id) {
-            fetchUserIuran(supabaseUser.id);
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
           table: "panic_alerts",
         },
         (payload: any) => {
@@ -120,7 +106,7 @@ export default function WargaDashboardPage() {
       console.log("🧹 CLEANUP REALTIME");
       supabase.removeChannel(channel);
     };
-  }, [fetchLetters, fetchUserIuran, fetchNotifications, supabaseUser?.id]);
+  }, [fetchLetters, fetchNotifications]);
 
   const fetchVotingStatus = async () => {
     try {
@@ -197,26 +183,38 @@ export default function WargaDashboardPage() {
       </div>
       <div style={{ display: mounted ? 'block' : 'none' }}>
         {/* HERO SECTION */}
-        <div className="bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 px-5 pt-9 pb-7 text-white relative overflow-hidden animate-in fade-in duration-500">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-          <div className="absolute top-10 left-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
-          <div className="absolute -bottom-8 left-0 w-28 h-28 bg-white/10 rounded-full blur-2xl" />
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex justify-center flex-1">
-                <Logo size="large" />
-              </div>
-              <PingStatus />
+        <div className="bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 px-5 pt-10 pb-8 text-white relative overflow-hidden">
+          {/* Background gradient orbs */}
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute top-20 left-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
+          <div className="absolute -bottom-10 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+
+          {/* Status badge - positioned absolutely in top right without affecting layout */}
+          <div className="absolute top-5 right-5 z-20">
+            <PingStatus />
+          </div>
+
+          {/* Main content - centered flex-col */}
+          <div className="relative z-10 flex flex-col items-center gap-4 max-w-md mx-auto">
+            {/* Logo - truly centered */}
+            <div className="flex justify-center">
+              <Logo size="large" />
             </div>
-            <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-blue-50 backdrop-blur-sm shadow-sm">
+
+            {/* Dashboard badge */}
+            <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-widest text-blue-50 backdrop-blur-sm shadow-sm">
               <Sparkles size={12} className="mr-1.5" /> Dashboard Warga
             </div>
-            <h1 className="text-[2rem] font-black mt-3 tracking-tight leading-none">Selamat {greeting}, {userProfile.name || "Warga"}</h1>
-            <p className="text-blue-50/95 text-sm mt-3 leading-relaxed max-w-88">Pantau status surat, iuran, dan notifikasi dalam satu tampilan yang mudah diakses.</p>
-            
+
+            {/* Heading - centered with max-width */}
+            <div className="text-center max-w-sm">
+              <h1 className="text-[2rem] font-black tracking-tight leading-none">Selamat {greeting}, {userProfile.name || "Warga"}</h1>
+              <p className="text-blue-50/95 text-sm mt-3 leading-relaxed">Pantau status surat, iuran, dan notifikasi dalam satu tampilan yang mudah diakses.</p>
+            </div>
+
             {/* Iuran Status Badge */}
-            <div className="mt-4 flex items-center gap-2">
-              <div className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-black border backdrop-blur-sm ${
+            <div className="flex items-center gap-2">
+              <div className={`inline-flex items-center rounded-full px-4 py-1.5 text-xs font-black border backdrop-blur-sm ${
                 pendingIuran.length === 0
                   ? "bg-green-400/20 border-green-300/30 text-green-50"
                   : "bg-amber-400/20 border-amber-300/30 text-amber-50"

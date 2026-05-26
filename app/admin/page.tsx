@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
     fetchIuranMaster();
   }, [fetchLetters, fetchIuranPayments, fetchProfiles, fetchIuranTypes, fetchNotifications, fetchAllIuranUser, fetchIuranMaster]);
 
-  // Realtime subscription for iuran data
+  // Realtime subscription (only letters, messages, panic_alerts as per requirements)
   useEffect(() => {
     console.log("⚡ ADMIN DASHBOARD REALTIME INIT");
 
@@ -55,11 +55,11 @@ export default function AdminDashboardPage() {
         {
           event: "*",
           schema: "public",
-          table: "iuran_user",
+          table: "letters",
         },
         (payload: any) => {
-          console.log("💰 IURAN_USER CHANGE:", payload);
-          fetchAllIuranUser();
+          console.log("📨 LETTER CHANGE:", payload);
+          fetchLetters();
         }
       )
       .on(
@@ -67,11 +67,11 @@ export default function AdminDashboardPage() {
         {
           event: "*",
           schema: "public",
-          table: "iuran_master",
+          table: "panic_alerts",
         },
         (payload: any) => {
-          console.log("💰 IURAN_MASTER CHANGE:", payload);
-          fetchIuranMaster();
+          console.log("� PANIC ALERT CHANGE:", payload);
+          fetchNotifications();
         }
       )
       .subscribe();
@@ -80,7 +80,7 @@ export default function AdminDashboardPage() {
       console.log("🧹 ADMIN DASHBOARD REALTIME CLEANUP");
       supabase.removeChannel(channel);
     };
-  }, [fetchAllIuranUser, fetchIuranMaster]);
+  }, [fetchLetters, fetchNotifications]);
 
   return (
     <div className="min-h-screen font-sans relative overflow-x-hidden pb-24">
@@ -90,22 +90,34 @@ export default function AdminDashboardPage() {
       </div>
       <div style={{ display: mounted ? 'block' : 'none' }}>
         {/* HERO SECTION */}
-        <div className="bg-linear-to-br from-indigo-600 via-blue-600 to-cyan-500 px-5 pt-9 pb-7 text-white relative overflow-hidden animate-in fade-in duration-500">
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-          <div className="absolute top-10 left-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
-          <div className="absolute -bottom-8 left-0 w-28 h-28 bg-white/10 rounded-full blur-2xl" />
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex justify-center flex-1">
-                <Logo size="large" />
-              </div>
-              <PingStatus />
+        <div className="bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 px-5 pt-10 pb-8 text-white relative overflow-hidden">
+          {/* Background gradient orbs */}
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute top-20 left-1/2 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-x-1/2" />
+          <div className="absolute -bottom-10 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+
+          {/* Status badge - positioned absolutely in top right without affecting layout */}
+          <div className="absolute top-5 right-5 z-20">
+            <PingStatus />
+          </div>
+
+          {/* Main content - centered flex-col */}
+          <div className="relative z-10 flex flex-col items-center gap-4 max-w-md mx-auto">
+            {/* Logo - truly centered */}
+            <div className="flex justify-center">
+              <Logo size="large" />
             </div>
-            <div className="inline-flex items-center rounded-full border border-white/20 bg-[rgba(255,255,255,0.14)] px-3 py-1.5 text-[11px] font-black uppercase tracking-widest text-cyan-50 backdrop-blur-sm">
+
+            {/* Dashboard badge */}
+            <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-[11px] font-black uppercase tracking-widest text-blue-50 backdrop-blur-sm shadow-sm">
               <Sparkles size={12} className="mr-1.5" /> Dashboard Analitik RW
             </div>
-            <h1 className="mt-3 text-[2rem] font-black tracking-tight leading-none">Dashboard Admin</h1>
-            <p className="mt-3 max-w-80 text-sm leading-relaxed text-blue-50/92">Pantau aktivitas warga, status surat, dan progres iuran dalam satu tampilan yang lebih ringkas dan mudah diikuti.</p>
+
+            {/* Heading - centered with max-width */}
+            <div className="text-center max-w-sm">
+              <h1 className="text-[2rem] font-black tracking-tight leading-none">Dashboard Admin</h1>
+              <p className="text-blue-50/95 text-sm mt-3 leading-relaxed">Pantau aktivitas warga, status surat, dan progres iuran dalam satu tampilan yang lebih ringkas dan mudah diikuti.</p>
+            </div>
           </div>
         </div>
 

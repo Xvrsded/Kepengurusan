@@ -41,7 +41,7 @@ export async function sendMessage(senderId: string, receiverId: string, message:
 export async function getMessages(userId: string, targetId: string) {
   const { data, error } = await supabase
     .from("messages")
-    .select("*")
+    .select("id, sender_id, receiver_id, content, is_read, created_at, updated_at")
     .or(`and(sender_id.eq.${userId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${userId})`)
     .order("created_at", { ascending: true });
 

@@ -11,7 +11,7 @@ const supabase = createClient(
 export async function getCandidates() {
   const { data, error } = await supabase
     .from("candidates")
-    .select("*")
+    .select("id, name, photo_url, description, vote_count, is_active, created_at, updated_at, created_by")
     .order("created_at", { ascending: true });
 
   if (error) {

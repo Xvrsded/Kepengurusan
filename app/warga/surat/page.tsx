@@ -44,6 +44,7 @@ export default function WargaSuratPage() {
   const supabaseUser = useAppStore((s) => s.supabaseUser);
 
   const [selectedType, setSelectedType] = useState(SURAT_TYPES[0]);
+  const [purpose, setPurpose]           = useState("");
   const [loading, setLoading]           = useState(false);
   const [draft, setDraft]               = useState("");
   const [search, setSearch]             = useState("");
@@ -70,7 +71,7 @@ export default function WargaSuratPage() {
   const doneCount = letters.filter((letter) => letter.status === "approved").length;
 
   const handleRequestLetter = async () => {
-    const result = await requestLetter(selectedType);
+    const result = await requestLetter(selectedType, purpose);
     setNotif({
       title: result.success ? "Pengajuan berhasil dikirim" : "Pengajuan belum berhasil",
       message: result.message,
@@ -170,6 +171,15 @@ export default function WargaSuratPage() {
                   <option key={t} value={t}>{t}</option>
                 ))}
               </select>
+            </div>
+            <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+              <p className="text-[11px] uppercase tracking-widest font-bold text-slate-400 mb-2">Keperluan</p>
+              <input
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                placeholder="Jelaskan keperluan surat Anda"
+                className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              />
             </div>
             <button onClick={handleRequestLetter} className="w-full py-4 rounded-2xl bg-blue-600 text-white text-sm font-black shadow-xl shadow-blue-100 transition-all duration-300 hover:scale-[1.01] active:scale-95">
               Kirim Pengajuan Surat

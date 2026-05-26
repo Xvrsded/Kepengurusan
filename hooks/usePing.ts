@@ -38,7 +38,38 @@ export function usePing(activeInterval: number = 3000, inactiveInterval: number 
       const response = await fetch("/api/ping", {
         signal: abortController.signal,
       });
-      const data = await response.json();
+
+      // ✅ Check if response is OK (non-throwing version)
+      if (!response.ok) {
+        console.warn(`[PING] Request failed with status ${response.status}`);
+        clearTimeout(timeoutId);
+        setLatency(null);
+        setStatus("error");
+        return; // Exit gracefully without throwing
+      }
+
+      // ✅ Check Content-Type header (non-throwing version)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.warn(`[PING] Invalid Content-Type: ${contentType}. Expected application/json`);
+        clearTimeout(timeoutId);
+        setLatency(null);
+        setStatus("error");
+        return; // Exit gracefully without throwing
+      }
+
+      // ✅ Parse JSON safely (non-throwing version)
+      let data: any;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.warn('[PING] Failed to parse JSON response:', parseError);
+        clearTimeout(timeoutId);
+        setLatency(null);
+        setStatus("error");
+        return; // Exit gracefully without throwing
+      }
+
       const endTime = performance.now();
       clearTimeout(timeoutId);
       
@@ -57,9 +88,9 @@ export function usePing(activeInterval: number = 3000, inactiveInterval: number 
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error?.name === "AbortError") {
-        console.warn("Ping request aborted (timeout)");
+        console.warn("[PING] Request aborted (timeout)");
       } else {
-        console.error("Ping error:", error);
+        console.warn("[PING] Network error:", error?.message || error);
       }
       setLatency(null);
       setStatus("error");

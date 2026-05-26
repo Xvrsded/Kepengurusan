@@ -9,7 +9,7 @@ const supabase = createClient();
 
 export type Profile = {
   id: string;
-  name: string;
+  full_name: string;
   nik: string;
   address: string;
   status: string;
@@ -255,7 +255,7 @@ export type AppStore = {
   setAiResult: (result: string) => void;
   setIsAiLoading: (v: boolean) => void;
   setIsTtsLoading: (v: boolean) => void;
-  requestLetter: (type: string) => Promise<{ success: boolean; message: string }>;
+  requestLetter: (type: string, purpose: string) => Promise<{ success: boolean; message: string }>;
   payIuran: (id: number) => Promise<{ success: boolean; message: string }>;
   updateIuranStatus: (id: number, status: Iuran["status"]) => Promise<{ success: boolean; message: string }>;
   updateLetters: (letters: Letter[]) => void;
@@ -355,7 +355,10 @@ export const useAppStore = create<AppStore>()(
     fetchProfiles: async () => {
       set({ loadingProfiles: true, error: null });
       try {
-        const { data, error } = await supabase.from("profiles").select("*").order("id", { ascending: true });
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, nik, address, status, phone, role")
+          .order("id", { ascending: true });
         if (error) throw error;
         set({ profiles: (data as Profile[]) ?? [], loadingProfiles: false });
       } catch (err) {
@@ -366,7 +369,10 @@ export const useAppStore = create<AppStore>()(
     fetchCitizens: async () => {
       set({ loadingCitizens: true, error: null });
       try {
-        const { data, error } = await supabase.from("profiles").select("*").order("id", { ascending: true });
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, nik, address, status, phone, role")
+          .order("id", { ascending: true });
         if (error) throw error;
         set({ citizens: (data as Profile[]) ?? [], loadingCitizens: false });
       } catch (err) {
@@ -459,7 +465,10 @@ export const useAppStore = create<AppStore>()(
     fetchIuran: async () => {
       set({ loadingIuran: true, error: null });
       try {
-        const { data, error } = await supabase.from("iuran").select("*").order("id", { ascending: true });
+        const { data, error } = await supabase
+          .from("iuran")
+          .select("id, citizenId, amount, status, due_date, paid_at, created_at, updated_at")
+          .order("id", { ascending: true });
         if (error) throw error;
         set({ iuran: (data as Iuran[]) ?? [], loadingIuran: false });
       } catch (err) {
@@ -470,7 +479,10 @@ export const useAppStore = create<AppStore>()(
     fetchIuranTypes: async () => {
       set({ loadingIuranTypes: true, error: null });
       try {
-        const { data, error } = await supabase.from("iuran_types").select("*").order("created_at", { ascending: true });
+        const { data, error } = await supabase
+          .from("iuran_types")
+          .select("id, name, description, amount, created_at, updated_at")
+          .order("created_at", { ascending: true });
         if (error) throw error;
         set({ iuranTypes: (data as IuranType[]) ?? [], loadingIuranTypes: false });
       } catch (err) {
@@ -481,7 +493,10 @@ export const useAppStore = create<AppStore>()(
     fetchIuranPayments: async () => {
       set({ loadingIuranPayments: true, error: null });
       try {
-        const { data, error } = await supabase.from("iuran_payments").select("*").order("id", { ascending: true });
+        const { data, error } = await supabase
+          .from("iuran_payments")
+          .select("id, iuran_user_id, amount, payment_date, proof_url, verified_by, verified_at, created_at, updated_at")
+          .order("id", { ascending: true });
         if (error) throw error;
         set({ iuranPayments: (data as IuranPayment[]) ?? [], loadingIuranPayments: false });
       } catch (err) {
@@ -498,7 +513,7 @@ export const useAppStore = create<AppStore>()(
 
         const { data, error } = await supabase
           .from("iuran_master")
-          .select("*");
+          .select("id, name, description, amount, due_date, created_at, updated_at");
 
         console.log('[FETCH IURAN MASTER] Raw Supabase response:', { data, error });
         console.log('[FETCH IURAN MASTER] Data length:', data?.length ?? 0);
@@ -660,7 +675,10 @@ export const useAppStore = create<AppStore>()(
     fetchNotifications: async () => {
       set({ loadingNotifications: true, error: null });
       try {
-        const { data, error } = await supabase.from("notifications").select("*").order("created_at", { ascending: false });
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("id, user_id, title, message, type, is_read, created_at, updated_at")
+          .order("created_at", { ascending: false });
         if (error) throw error;
         set({ notifications: (data as AppNotification[]) ?? [], loadingNotifications: false });
       } catch (err) {
@@ -673,7 +691,7 @@ export const useAppStore = create<AppStore>()(
       try {
         const { data, error } = await supabase
           .from("messages")
-          .select("*")
+          .select("id, sender_id, receiver_id, content, is_read, created_at, updated_at")
           .or(`and(sender_id.eq.${userId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${userId})`)
           .order("created_at", { ascending: true });
         if (error) throw error;
@@ -966,7 +984,7 @@ export const useAppStore = create<AppStore>()(
                 ...state.profiles,
                 {
                   id: crypto.randomUUID(),
-                  name: nextAccount.name,
+                  full_name: nextAccount.name,
                   nik: nextAccount.nik,
                   address: nextAccount.address,
                   status: "pending",
@@ -1024,88 +1042,103 @@ export const useAppStore = create<AppStore>()(
     syncSupabaseUser: async () => {
       console.log("[SYNC] syncSupabaseUser called");
       set({ loading: true, isAuthReady: false });
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("[SYNC] User from auth:", { hasUser: !!user, userId: user?.id, email: user?.email });
       
-      if (!user) {
-        console.warn("[SYNC] No user found");
-        set({ supabaseUser: null, isLoggedIn: false, role: null, isAuthReady: true, loading: false });
-        return;
-      }
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.error("[SYNC] Timeout - forcing loading to false");
+        set({ loading: false, isAuthReady: true });
+      }, 10000); // 10 second timeout
 
-      console.log("[SYNC] Fetching profile data for user:", user.id);
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("full_name, phone, role, email, photo_url")
-        .eq("id", user.id)
-        .maybeSingle();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log("[SYNC] User from auth:", { hasUser: !!user, userId: user?.id, email: user?.email });
+        
+        if (!user) {
+          console.warn("[SYNC] No user found");
+          set({ supabaseUser: null, isLoggedIn: false, role: null, isAuthReady: true, loading: false });
+          return;
+        }
 
-      console.log("[SYNC] Profile fetch result:", { 
-        hasProfile: !!profile, 
-        error: error?.message,
-        profileData: profile ? { id: profile.id, role: profile.role, email: profile.email } : null 
-      });
+        console.log("[SYNC] Fetching profile data for user:", user.id);
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone, role")
+          .eq("id", user.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error("[SYNC] Gagal fetch profiles:", error.message);
-        // RLS error - this is critical, set error status
+        console.log("[SYNC] Profile fetch result:", { 
+          hasProfile: !!profile, 
+          error: error?.message,
+          profileData: profile ? { id: profile.id, role: profile.role, full_name: profile.full_name } : null 
+        });
+
+        if (error) {
+          console.error("[SYNC] Gagal fetch profiles:", error.message);
+          console.log("[SYNC USER] Using auth.user data as fallback:", { email: user.email, id: user.id });
+          // RLS error - this is critical, set error status
+          set({
+            supabaseUser: user,
+            isLoggedIn: true,
+            role: null,
+            isAuthReady: true,
+            loading: false,
+            userProfile: {
+              name: user.email ?? "",
+              nik: "",
+              address: "",
+              phone: "",
+              role: null,
+            },
+          });
+          return;
+        }
+
+        // Only set role if profile data exists
+        if (!profile) {
+          console.warn("[SYNC] Profile data not found for user:", user.id);
+          console.log("[SYNC USER] Using auth.user data as fallback:", { email: user.email, id: user.id });
+          set({
+            supabaseUser: user,
+            isLoggedIn: true,
+            role: null,
+            isAuthReady: true,
+            loading: false,
+            userProfile: {
+              name: user.email ?? "",
+              nik: "",
+              address: "",
+              phone: "",
+              role: null,
+            },
+          });
+          return;
+        }
+
+        // Use role from database, no fallback
+        const role = profile.role as AppRole;
+        console.log("[SYNC] Role found:", role);
+
         set({
           supabaseUser: user,
           isLoggedIn: true,
-          role: null,
-          isAuthReady: true,
-          loading: false,
-          userProfile: {
-            name: user.email ?? "",
-            nik: "",
-            address: "",
-            phone: "",
-            role: null,
-          },
-        });
-        return;
-      }
-
-      // Only set role if profile data exists
-      if (!profile) {
-        console.warn("[SYNC] Profile data not found for user:", user.id);
-        set({
-          supabaseUser: user,
-          isLoggedIn: true,
-          role: null,
-          isAuthReady: true,
-          loading: false,
-          userProfile: {
-            name: user.email ?? "",
-            nik: "",
-            address: "",
-            phone: "",
-            role: null,
-          },
-        });
-        return;
-      }
-
-      // Use role from database, no fallback
-      const role = profile.role as AppRole;
-      console.log("[SYNC] Role found:", role);
-
-      set({
-        supabaseUser: user,
-        isLoggedIn: true,
-        role,
-        isAuthReady: true,
-        loading: false,
-        userProfile: {
-          name: profile.full_name ?? user.email ?? "",
-          nik: profile.nik ?? "",
-          address: profile.address ?? "",
-          phone: profile.phone ?? "",
           role,
-          photo_url: profile.photo_url,
-        },
-      });
-      console.log("[SYNC] syncSupabaseUser completed successfully with role:", role);
+          isAuthReady: true,
+          loading: false,
+          userProfile: {
+            name: profile.full_name ?? user.email ?? "",
+            nik: profile.nik ?? "",
+            address: profile.address ?? "",
+            phone: profile.phone ?? "",
+            role,
+          },
+        });
+        console.log("[SYNC] syncSupabaseUser completed successfully with role:", role);
+      } catch (error) {
+        console.error("[SYNC] Unexpected error:", error);
+        set({ loading: false, isAuthReady: true });
+      } finally {
+        clearTimeout(timeoutId);
+      }
     },
     setNotif: (payload: string | AppToast) =>
       set({
@@ -1165,7 +1198,7 @@ export const useAppStore = create<AppStore>()(
             profile.nik === state.userProfile.nik
               ? {
                   ...profile,
-                  name: data.name ?? profile.name,
+                  full_name: data.name ?? profile.full_name,
                   address: data.address ?? profile.address,
                   phone: data.phone ?? profile.phone,
                 }
@@ -1300,12 +1333,16 @@ export const useAppStore = create<AppStore>()(
     setAiResult: (result: string) => set({ aiResult: result }),
     setIsAiLoading: (v: boolean) => set({ isAiLoading: v }),
     setIsTtsLoading: (v: boolean) => set({ isTtsLoading: v }),
-    requestLetter: async (type: string) => {
+    requestLetter: async (type: string, purpose: string) => {
       let result = { success: false, message: "Pengajuan surat gagal." };
 
       const normalizedType = type.trim();
+      const normalizedPurpose = purpose.trim();
       if (!normalizedType) {
         return { success: false, message: "Jenis surat wajib dipilih." };
+      }
+      if (!normalizedPurpose) {
+        return { success: false, message: "Keperluan surat wajib diisi." };
       }
 
       const { userProfile, letters, supabaseUser } = get();
@@ -1318,7 +1355,8 @@ export const useAppStore = create<AppStore>()(
 
       const nextLetter = {
         user_id: supabaseUser?.id,
-        type: normalizedType,
+        jenis_surat: normalizedType,
+        keperluan: normalizedPurpose,
         status: "pending" as const
       };
 
@@ -1329,9 +1367,13 @@ export const useAppStore = create<AppStore>()(
         console.error('[REQUEST LETTER ERROR] user_id is null or undefined');
         return { success: false, message: "User tidak terautentikasi. Silakan login ulang." };
       }
-      if (!nextLetter.type || nextLetter.type.trim() === "") {
-        console.error('[REQUEST LETTER ERROR] type is empty');
+      if (!nextLetter.jenis_surat || nextLetter.jenis_surat.trim() === "") {
+        console.error('[REQUEST LETTER ERROR] jenis_surat is empty');
         return { success: false, message: "Jenis surat tidak boleh kosong." };
+      }
+      if (!nextLetter.keperluan || nextLetter.keperluan.trim() === "") {
+        console.error('[REQUEST LETTER ERROR] keperluan is empty');
+        return { success: false, message: "Keperluan tidak boleh kosong." };
       }
       if (!nextLetter.status) {
         console.error('[REQUEST LETTER ERROR] status is null');
@@ -1354,6 +1396,66 @@ export const useAppStore = create<AppStore>()(
         
         set({ letters: [newLetter, ...letters] });
         result = { success: true, message: "Pengajuan surat berhasil dikirim." };
+
+        // Send webhook to n8n after successful insert
+        try {
+          const webhookUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL;
+          if (webhookUrl) {
+            const webhookPayload = {
+              nama: userProfile.name,
+              nomor: userProfile.phone,
+              jenis_surat: normalizedType,
+              keperluan: normalizedPurpose,
+              tanggal: new Date().toLocaleDateString("id-ID")
+            };
+            
+            console.log('[REQUEST LETTER] ===== WEBHOOK DEBUG =====');
+            console.log('[REQUEST LETTER] Webhook URL:', webhookUrl);
+            console.log('[REQUEST LETTER] Webhook Payload:', JSON.stringify(webhookPayload, null, 2));
+            console.log('[REQUEST LETTER] User Profile:', userProfile);
+            console.log('[REQUEST LETTER] Normalized Type:', normalizedType);
+            console.log('[REQUEST LETTER] Normalized Purpose:', normalizedPurpose);
+            console.log('[REQUEST LETTER] Sending webhook to n8n...');
+            
+            const webhookResponse = await fetch(webhookUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(webhookPayload)
+            });
+            
+            console.log('[REQUEST LETTER] Webhook Response Status:', webhookResponse.status);
+            console.log('[REQUEST LETTER] Webhook Response OK:', webhookResponse.ok);
+            
+            // ✅ Safely read webhook response (using text() to avoid JSON parsing errors)
+            let responseData = '';
+            try {
+              const contentType = webhookResponse.headers.get('content-type');
+              if (contentType?.includes('application/json')) {
+                responseData = JSON.stringify(await webhookResponse.json());
+              } else {
+                responseData = await webhookResponse.text();
+              }
+            } catch (readError) {
+              console.error('[REQUEST LETTER] Failed to read webhook response:', readError);
+              responseData = '(Unable to read response body)';
+            }
+            
+            console.log('[REQUEST LETTER] Webhook Response Body:', responseData);
+            
+            if (webhookResponse.ok) {
+              console.log('[REQUEST LETTER] ✅ Webhook sent successfully to n8n');
+            } else {
+              console.error('[REQUEST LETTER] ❌ Webhook failed with status:', webhookResponse.status);
+            }
+          } else {
+            console.warn('[REQUEST LETTER] ⚠️ NEXT_PUBLIC_N8N_WEBHOOK_URL not set, skipping webhook');
+          }
+        } catch (webhookError) {
+          console.error('[REQUEST LETTER] ❌ Webhook error:', webhookError);
+          // Don't fail the request if webhook fails
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         const errorCode = (error as any).code;
@@ -1628,7 +1730,6 @@ export const useAppStore = create<AppStore>()(
           .update({
             status: "approved",
             admin_note: adminNote,
-            updated_at: new Date().toISOString(),
           })
           .eq("id", id);
         
